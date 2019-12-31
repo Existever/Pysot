@@ -39,11 +39,12 @@ class SubDataset(object):
         self.frame_range = frame_range
         self.num_use = num_use
         self.start_idx = start_idx
+
         logger.info("loading " + name)   #json文件以视频id键,每个视频里面又分为多个跟踪目标，每个跟踪目标有多帧，每帧以帧号为键，标注信息为值，对于只有一张图片的coco数据集，一张图作为一个video
         with open(self.anno, 'r') as f:
             meta_data = json.load(f)
             meta_data = self._filter_zero(meta_data)
-        #再次做合法性质检查，对于帧号不是数字的滤出掉，对于每个跟踪目标而言，帧号按照从小到达排序，保证每个视频中是少有一个跟踪目标，一个跟踪目标至少有一帧标注信息
+        #再次做合法性质检查，对于帧号不是数字的滤出掉，对于每个跟踪目标而言，帧号按照从小到达排序，保证每个视频中至少有一个跟踪目标，一个跟踪目标至少有一帧标注信息
         for video in list(meta_data.keys()):
             for track in meta_data[video]:
                 frames = meta_data[video][track]
@@ -61,12 +62,13 @@ class SubDataset(object):
                 del meta_data[video]
 
         self.labels = meta_data
-        self.num = len(self.labels)
+        self.num = len(self.labels)                                     #视频片段的个数
         self.num_use = self.num if self.num_use == -1 else self.num_use
         self.videos = list(meta_data.keys())
-        logger.info("{} loaded".format(self.name))
+        logger.info("{} loaded".format(self.name))                      #视频片段的部分路径
         self.path_format = '{}.{}.{}.jpg'
-        self.pick = self.shuffle()
+        self.pick = self.shuffle()                                      #shuffle索引号的idx，例如【0,2,1,0,1,2，...】视频序列不够时通过随机重复筹够self.num_use个视频片段
+
     #滤出掉bbox中w,h小于0的标注，保证一个视频中至少有一个跟踪目标，一个跟踪目标至少有一帧标注信息
     def _filter_zero(self, meta_data):
         meta_data_new = {}
@@ -75,7 +77,7 @@ class SubDataset(object):
             for trk, frames in tracks.items():
                 new_frames = {}                  #对于每一个跟踪目标的标注信息，滤出标注bbox中w,h<0的bbox
                 for frm, bbox in frames.items():
-                    if not isinstance(bbox, dict):
+                    if not isinstance(bbox, dict):      #bbox是一个list,存放的是【x1,y1,x2,y2]
                         if len(bbox) == 4:
                             x1, y1, x2, y2 = bbox
                             w, h = x2 - x1, y2 - y1
@@ -172,7 +174,7 @@ class TrkDataset(Dataset):
         # create sub dataset
         self.all_dataset = []
         start = 0
-        self.num = 0
+        self.num = 0                    #视频片段的总个数
         for name in cfg.DATASET.NAMES:
             subdata_cfg = getattr(cfg.DATASET, name)
             sub_dataset = SubDataset(
@@ -208,6 +210,7 @@ class TrkDataset(Dataset):
         self.num = videos_per_epoch if videos_per_epoch > 0 else self.num
         self.num *= cfg.TRAIN.EPOCH
         self.pick = self.shuffle()
+        self.img_cnt = 0  # 调试用
 
     def shuffle(self):
         '''
@@ -218,8 +221,8 @@ class TrkDataset(Dataset):
         while m < self.num:
             p = []
             for sub_dataset in self.all_dataset:
-                sub_p = sub_dataset.pick
-                p += sub_p
+                sub_p = sub_dataset.pick            #子数据集视频片段的索引号列表，例如【0,2,1,0,1,2，...】视频序列不够时通过随机重复筹够self.num_use个视频片段
+                p += sub_p                          #将子数据集的list拼接成全局的list,直到凑够self.num个为止
             np.random.shuffle(p)
             pick += p
             m = len(pick)
@@ -229,15 +232,37 @@ class TrkDataset(Dataset):
 
     def _find_dataset(self, index):
         '''
-        :param index:
+        :param index:  这个index是视频片段的索引
         :return:
         '''
-        for dataset in self.all_dataset:
-            if dataset.start_idx + dataset.num > index:         #这个地方不妥吧？
-                return dataset, index - dataset.start_idx
+        dataset=None
+        idx_offset=0
+        dataset_num=len( self.all_dataset)
+        cnt=0                                   #防止循环卡死
+        while cnt>dataset_num or dataset is None:
+            cnt+=1
+            idx =np.random.randint(0,dataset_num)            #随机选择一个数据集，看索引是否在这个数据集视频片段范围内
+            if index<self.all_dataset[idx].start_idx + self.all_dataset[idx].num:
+                dataset =self.all_dataset[idx]
+                idx_offset=index - dataset.start_idx
+                break
+         #检查是否是由于输入index不合法导致的
+        if dataset==None:
+            raise ValueError
+
+        return dataset,idx_offset
+
+        #pysot原版本这样写，对于放在前面的子数据集选择的概率更大，不合适
+        # for dataset in self.all_dataset:
+        #     if dataset.start_idx + dataset.num > index:         #这个地方不妥吧？ 这样
+        #         return dataset, index - dataset.start_idx
 
     def _get_bbox(self, image, shape):
-        '''默认模板图像位于整个图像的中心，将gt标注的bbox加上0.5倍大小的上下文图像内容作为模板区域，认为是网络训练的模板区域，缩放到127*127，输出缩放后的相对与图像中心的模板坐标
+        '''
+        默认模板图像位于整个图像的中心，将gt标注的bbox加上0.5倍大小的上下文图像内容作为模板区域，认为是网络训练的模板区域，缩放到127*127，输出缩放后的相对与图像中心的模板坐标
+        注意：这里虽然shape是给的gt意义下的bbox信息，但是这个bbox是对应原始图像坐标系下的坐标，而这里输入图像是crop之后大小为511×511的图像，目标已经在图像的正中间了，因此
+            这里的bbox信息虽然有【x1,y1,x2,y2】四个量，但是最后用到的只有w=x2-x1,h=y2-y1这两个量，这两个量也只是为了得到目标（带有上下文信息的目标）在511*511图中的宽高
+            目标中心位置已经默认在crop阶段对齐到了511*511的图像中心
         :param image:
         :param shape:
         :return:
@@ -247,6 +272,10 @@ class TrkDataset(Dataset):
             w, h = shape[2]-shape[0], shape[3]-shape[1]
         else:
             w, h = shape
+
+        #通过下面的方式会对目标区域进行缩放，当时长宽上的缩放比例保持一致，也就是说目标不会变形，因为最后的模板是正方形的
+        #对于长方形的部分，短边就用背景来填补，也就是说对于狭长的bbox并不友好，会引入较多的背景信息
+
         context_amount = 0.5            #上下文占用的比例，gt构成的box再加上一定比例的上下文图像内容，认为是模板区域
         exemplar_size = cfg.TRAIN.EXEMPLAR_SIZE
         wc_z = w + context_amount * (w+h)
@@ -257,13 +286,13 @@ class TrkDataset(Dataset):
         h = h*scale_z
         cx, cy = imw//2, imh//2         #因为在制作数据集合的时候，模板区域已经默认对齐到图像中心
         bbox = center2corner(Center(cx, cy, w, h))
-        return bbox
+        return bbox                     #bbox的中心就是在511*511图的中心，这里输出转化为【x1,y1,x2,y2】的形式
 
     def __len__(self):
         return self.num
 
     def __getitem__(self, index):
-        index = self.pick[index]
+        index = self.pick[index]            #从多个子数据的视频片段随机找一个索引，这个索引对应的视频不唯一，比如索引 index=0,很多子数据集合都有第0个视频片段，所以需要通过_find_dataset找一个子数据集
         dataset, index = self._find_dataset(index)
 
         gray = cfg.DATASET.GRAY and cfg.DATASET.GRAY > np.random.random()           #通过随机产生的值决定是否将输入图像变换灰度
@@ -280,23 +309,41 @@ class TrkDataset(Dataset):
         template_image = cv2.imread(template[0])
         search_image = cv2.imread(search[0])
 
+
         # get bounding box template【1】中是bbox标签信息，这里生成的template_box和search_box本质上都是对应着模板区域的大小，
-        # 因为输入的图片的数据已经将gt_box和模板的size(127*127)在gen_crp过程中已经对应了起来，如果模板不做数据增强的话，这一步
+        # 因为输入的图片的数据已经是crop为511*511的图像了，模板的size(127*127)，并放在图像正中心，如果模板不做数据增强的话，这一步
         # 直接从中心扣取127*127的区域就是模板（其实是包含0.5倍的上下文图像内容的），扣取255*255d的区域就是搜索区域，但是在后面的
         # 数据增强过程中对目标的尺度会有轻微的调整，调整之后依然要resize到127*127的过程，这个轻微的调整是需要网络能够通过学习去适应的，
+        # 同时对搜索区域进行一定的shift，从而使得目标不全是在图像中心，防止网络错误学到这种位置偏见（目标都在中心）
         template_box = self._get_bbox(template_image, template[1])
         search_box = self._get_bbox(search_image, search[1])
 
+        # t_path, t_box = template[0], template[1]
+        # s_path, s_box = search[0], search[1]
+
         # augmentation（扣取模板信息和搜索区域的信息，返回的box信息是转化到扣取图像坐标系下的信息）
+
+        #从511的图中裁剪出127*127的模板图
         template, _ = self.template_aug(template_image,
                                         template_box,
                                         cfg.TRAIN.EXEMPLAR_SIZE,
                                         gray=gray)
-
+        #从511*511的图中裁剪出255*255的搜索区域，这里面的shift使得位置目标相对与搜索区域有随机位置，否则目标一直在搜索区域中心
         search, bbox = self.search_aug(search_image,
                                        search_box,
                                        cfg.TRAIN.SEARCH_SIZE,
                                        gray=gray)
+
+        # print("pair{}:\n".format(self.img_cnt))
+        # print("t_path:", t_path,t_box,template_box)
+        # print("s_path", s_path,s_box,search_box)
+        # cv2.imwrite("./temp/{}org_template.jpg".format(self.img_cnt),template_image)
+        # cv2.imwrite("./temp/{}org_search.jpg".format(self.img_cnt),search_image)
+        # cv2.imwrite("./temp/{}crop_template.jpg".format(self.img_cnt),template)
+        # cv2.imwrite("./temp/{}crop_search.jpg".format(self.img_cnt),search)
+
+        self.img_cnt+=1
+
 
         # get labels  对应到特征图上每个anchor的信息：cls（此anchor是正样本：1、负样本：0、忽略：-1）, delta（正样本框相对于anchor的编码偏移量）, delta_weight（正样本对应的那些anchor的权重，其他位置为0）, overlap（正样本和所有anchor的IOU）
         cls, delta, delta_weight, overlap = self.anchor_target(

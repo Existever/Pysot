@@ -2,9 +2,14 @@
 
 1、因为要加载分布式训练模块，在run-->edit-->configure  选择module name 
 
+输入：
 torch.distributed.launch
 
-parameters 后面：  train --cfg /home/rainzsy/projects/pytorch/pysot-master/experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml 不要用rpn_alex_dwxcorr的，他这个配置只支持前向的，问题去已经说了
+parameters 后面：
+
+train --cfg /home/rainzsy/projects/Pytorch/Pysot/experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml
+
+不要用rpn_alex_dwxcorr的，他这个配置只支持前向的，pysot问题区已经说了
 
  
 2、修改 pysot.core.datasets里的config文件，__C.DATASET.NAMES = (['COCO'])  这里只用coco一个数据集合训练

@@ -7,6 +7,30 @@ import json
 
 dataDir = '/media/rainzsy/00024268000F00F7/coco'
 
+
+'''
+#.json的生成标签文件,生成的dataset格式为
+
+dataset=
+【
+    'val2017/000000397133'：[                                    #视频id
+                                “00":                            #跟踪目标id
+                                    {
+                                    "000000":[x1,y1,x2,y2]       #key:图像帧号,value :bbox
+                                    }
+                                 “01":
+                                    {
+                                    "000001":[x1,y1,x2,y2]
+                                    }
+                            ]
+   #同理类推... 
+    'val2017/000000397134':
+    ...
+                             
+】
+'''
+
+
 for dataType in ['val2017', 'train2017']:
     dataset = dict()
     annFile = '{}/annotations/instances_{}.json'.format(dataDir,dataType)
@@ -32,5 +56,7 @@ for dataType in ['val2017', 'train2017']:
 
     print('save json (dataset), please wait 20 seconds~')
     json.dump(dataset, open(dataDir+'/{}.json'.format(dataType), 'w'), indent=4, sort_keys=True)
+
+
     print('done!')
 

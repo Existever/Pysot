@@ -69,10 +69,31 @@ def crop_img(img, anns, set_crop_base_path, set_img_base_path, instanc_size=511)
     frame_crop_base_path = join(set_crop_base_path, img['file_name'].split('/')[-1].split('.')[0])
     if not isdir(frame_crop_base_path): makedirs(frame_crop_base_path)
 
+    #查看其中某一张的结果
+    # if img['file_name']=='000000376109.jpg':
+    #     print(img['file_name'])
+    #     im = cv2.imread('{}/{}'.format(set_img_base_path, img['file_name']))
+    #     cv2.imwrite(img['file_name'],im)
+    #     avg_chans = np.mean(im, axis=(0, 1))
+    #     for trackid, ann in enumerate(anns):
+    #         rect = ann['bbox']
+    #         print(trackid,rect)
+    #         bbox = [rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3]]
+    #         if rect[2] <= 0 or rect[3] <= 0:
+    #             continue
+    #         z, x = crop_like_SiamFC(im, bbox, instanc_size=instanc_size, padding=avg_chans)
+    #         cv2.imwrite(join( '{:06d}.{:02d}.z.jpg'.format(0, trackid)), z)
+    #         cv2.imwrite(join( '{:06d}.{:02d}.x.jpg'.format(0, trackid)), x)
+    # else:
+    #     return
+
+
+
     im = cv2.imread('{}/{}'.format(set_img_base_path, img['file_name']))
     avg_chans = np.mean(im, axis=(0, 1))
     for trackid, ann in enumerate(anns):
         rect = ann['bbox']
+        #coco的标注信息是x1,y1,w,h,转化为【x1,y1,x2,y2】的坐标
         bbox = [rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3]]
         if rect[2] <= 0 or rect[3] <=0:
             continue

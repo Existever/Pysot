@@ -20,8 +20,10 @@ from pysot.utils.model_load import load_pretrain
 from toolkit.datasets import DatasetFactory
 from toolkit.utils.region import vot_overlap, vot_float2str
 
+from pysot.models.backbone.alexnet import AlexNet
 
-root_dir ='/home/rainzsy/projects/pytorch/pysot-master/'
+
+root_dir ='/home/rainzsy/projects/Pytorch/Pysot/'
 datasets_root ='/home/rainzsy/datasets/vot/'
 
 
@@ -30,7 +32,7 @@ parser.add_argument('--dataset', default='VOT2018',
                     type=str, help='datasets')
 parser.add_argument('--config', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml',
                     type=str,   help='config file')
-parser.add_argument('--snapshot', default=root_dir+'tools/snapshot/checkpoint_e2.pth',
+parser.add_argument('--snapshot', default=root_dir+'tools/snapshot/model.pth',
                     type=str,    help='snapshot of models to eval')
 parser.add_argument('--video', default='',
                     type=str,   help='eval one special video')
@@ -57,6 +59,22 @@ torch.set_num_threads(1)
 #
 # torch.set_num_threads(1)
 
+
+def save_backbone(siamese):
+    alexnet =AlexNet()
+    alexnet_state_dict = alexnet.state_dict()
+    siamese_state_dict =siamese.state_dict()
+    for key in siamese_state_dict:
+        print(key)
+
+    for key in alexnet_state_dict:
+
+        alexnet_state_dict[key]=siamese_state_dict['backbone.'+key]
+        print(key)
+
+    torch.save(alexnet_state_dict,"siamese_alexnet_backbone.pth")
+
+
 def main():
     # load config
     cfg.merge_from_file(args.config)
@@ -70,6 +88,8 @@ def main():
 
     # load model
     model = load_pretrain(model, args.snapshot).cuda().eval()
+
+    # save_backbone(model)
 
     # build tracker
     tracker = build_tracker(model)

@@ -206,7 +206,8 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
             if epoch == cfg.TRAIN.EPOCH:
                 return
 
-            if cfg.BACKBONE.TRAIN_EPOCH == epoch:               #如果达到第10个epoch后，则要开始微调backbone的后面3层，要重新设置一下哪些参数是可训练的，哪些参数是不动的，学习率的调整因子
+            # 如果达到第10个epoch后，则要开始微调backbone的后面3层，要重新设置一下哪些参数是可训练的，哪些参数是不动的，学习率的调整因子
+            if cfg.BACKBONE.TRAIN_EPOCH == epoch:
                 logger.info('start training backbone.')
                 optimizer, lr_scheduler = build_opt_lr(model.module, epoch)
                 logger.info("model\n{}".format(describe(model.module)))

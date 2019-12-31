@@ -122,8 +122,11 @@ __C.DATASET.SEARCH.SHIFT = 64
 
 __C.DATASET.SEARCH.SCALE = 0.18
 
+#BLUR非0，且正太分布产生的随机数小于BLUR才进行模糊，配置为0表示不模糊
 __C.DATASET.SEARCH.BLUR = 0.0
 
+# FLIP非0，且正太分布产生的随机数小于flip才进行翻转，对于siampeserpn,如果模板翻转搜索区域也要翻转，
+# 程序里没有保持一致，所以统一选择不翻转，配置为0表示不翻转
 __C.DATASET.SEARCH.FLIP = 0.0
 
 __C.DATASET.SEARCH.COLOR = 1.0
@@ -133,15 +136,22 @@ __C.DATASET.SEARCH.COLOR = 1.0
 __C.DATASET.NEG = 0.2
 
 # improve tracking performance for otb100
+#（如果随机选择过程要进行灰度化，则先将彩色图像转化为灰度，在从灰度转化为3通道“彩图”）
 __C.DATASET.GRAY = 0.0
 
 
-__C.DATASET.NAMES = (['COCO'])    # only use coco for training zsy
+__C.DATASET.NAMES = (['VID'])    # only use coco for training zsy
 __C.DATASET.COCO = CN()
 __C.DATASET.COCO.ROOT = '/media/rainzsy/00024268000F00F7/coco/crop511'
 __C.DATASET.COCO.ANNO = '/media/rainzsy/00024268000F00F7/coco/train2017.json'
 __C.DATASET.COCO.FRAME_RANGE = 1  #模板图帧号为k,则搜索区域图在视频序列，在[k-FRAME_RANGE,k+FRAME_RANGE】范围内随机选择
 __C.DATASET.COCO.NUM_USE = -1     #使用多少个视频，-1表示使用全部，否则按照指定个数使用，如果指定个数大于总个数，在标签shuffle的时候会随机重复取，直到满足设定个数要求
+
+__C.DATASET.VID = CN()
+__C.DATASET.VID.ROOT = 'training_dataset/vid/crop511'
+__C.DATASET.VID.ANNO = 'training_dataset/vid/train_mini.json'       #人为挑出来的几个视频序列用于调试流程
+__C.DATASET.VID.FRAME_RANGE = 100
+__C.DATASET.VID.NUM_USE = 100000  # repeat until reach NUM_USE
 
 # __C.DATASET.NAMES = ('VID', 'COCO', 'DET', 'YOUTUBEBB')
 #

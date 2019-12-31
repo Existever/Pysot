@@ -28,3 +28,11 @@ python parse_vid.py
 python par_crop.py 511 12
 python gen_json.py
 ````
+
+
+
+### 本地测试
+```shell script
+#cd到 vid的目录下
+bash ./create_link.sh    #建立自己的数据集合与当前路径下的文件的软链接
+```

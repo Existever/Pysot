@@ -113,3 +113,27 @@ tools/results/VOT2018/
 *.rainzsy-pc
 
 训练笔记.txt
+
+pretrained_models/
+
+.idea/
+
+tools/logs/
+
+training_dataset/vid/ILSVRC2015/
+
+training_dataset/vid/crop511/
+
+*.json
+
+tools/temp/
+
+tools/crop_sketch/org_template.jpg
+
+tools/crop_sketch/org_search.jpg
+
+tools/crop_sketch/crop_template.jpg
+
+tools/crop_sketch/crop_search.jpg
+
+*.gz

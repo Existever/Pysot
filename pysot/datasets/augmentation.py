@@ -52,17 +52,25 @@ class Augmentation:
                               borderValue=padding)
         return crop
 
-    def _blur_aug(self, image):
-        def rand_kernel():
-            sizes = np.arange(5, 46, 2)
-            size = np.random.choice(sizes)
+    #按照目标和区域的面积比限制卷积核的尺寸, 否则模糊核过大，看不到目标
+    #对于一个正方形的bbox最后对应到到搜索区域的面积比约等于1/16=0.0625,此时目标的像素个数大小约等于64个像素
+    #假设最大的模糊核为8，但一般为奇数，所以设置为9，那么area_ratio/0.0625*9,就是卷积核的上限
+    def _blur_aug(self, image,area_ratio=0.0625):
+        def rand_kernel(area_ratio):
+
+            size = np.random.randint(3,max(3,int(area_ratio*144)))      #area_ratio/0.0625*9 = area_ratio*144
+            size = (size//2)*2+1            #保证卷积核为奇数
+            size =min(size,45)              #限制最大卷积核为45保持原始pysot一致
+
+            print('area_ratio', area_ratio,size)
+
             kernel = np.zeros((size, size))
             c = int(size/2)
             wx = np.random.random()
             kernel[:, c] += 1. / size * wx
             kernel[c, :] += 1. / size * (1-wx)
             return kernel
-        kernel = rand_kernel()
+        kernel = rand_kernel(area_ratio)
         image = cv2.filter2D(image, -1, kernel)
         return image
 
@@ -102,10 +110,11 @@ class Augmentation:
                                       crop_bbox_center.h * scale_y)
 
         crop_bbox = center2corner(crop_bbox_center)
+
         if self.shift:
             sx = Augmentation.random() * self.shift             #siamese rpn++ 论文中讨论了shift最大范围的时候能够一定程度上解决网络学习过程中的位置偏见问题
             sy = Augmentation.random() * self.shift
-
+           # print("shift", self.shift,sx,sy)
             x1, y1, x2, y2 = crop_bbox
 
             sx = max(-x1, min(im_w - 1 - x2, sx))   #min(im_w - 1 - x2, sx) 保证x2+sx不会超出图像右边界，也就是即使平移搜索区域，右边也不要超出右边图像边界，max(-x1,xxx)是保证x1+xxx不会小鱼0，也就是即使平移搜索区域，左边也不会超出左边图像边界
@@ -148,20 +157,23 @@ class Augmentation:
         shape = image.shape                #固定大小511*511
         crop_bbox = center2corner(Center(shape[0]//2, shape[1]//2,              #要从image中抠出搜索区域，这里计算出模板在图中左上角和右下角的坐标
                                          size-1, size-1))
-        # gray augmentation（如果随机选择过程要进行灰度花，则先将彩色图像转化为灰度，在从灰度转化为3通道“彩图”）
+        # gray augmentation（如果随机选择过程要进行灰度化，则先将彩色图像转化为灰度，在从灰度转化为3通道“彩图”）
         if gray:
             image = self._gray_aug(image)
 
         # shift scale augmentation
+        # 在这里真正完成图像的扣取操作，和简单的缩放操作
         image, bbox = self._shift_scale_aug(image, bbox, crop_bbox, size)
 
         # color augmentation
         if self.color > np.random.random():
             image = self._color_aug(image)
 
-        # blur augmentation
+        # blur augmentation,按照目标和区域的面积比限制卷积核的尺寸,否则模糊核过大，看不到目标
+        _, _, w, h = corner2center(bbox)
+        area_ratio = (w*h*1.0)/(size*size)
         if self.blur > np.random.random():
-            image = self._blur_aug(image)
+            image = self._blur_aug(image,area_ratio)
 
         # flip augmentation
         if self.flip and self.flip > np.random.random():
