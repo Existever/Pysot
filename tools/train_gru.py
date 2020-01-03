@@ -48,9 +48,11 @@ parser.add_argument('--seed', type=int, default=123456,
 parser.add_argument('--local_rank', type=int, default=0,
                     help='compulsory for pytorch launcer')
 args = parser.parse_args()
+import os
 
 
-
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 
 def seed_torch(seed=0):
     random.seed(seed)
@@ -195,13 +197,16 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
     #     data = next(dataiter)               #利用迭代器只取一个数据，用于构建图
     #     # tb_writer.add_graph(model,data)
 
+    max_batch=4     #tensorboard最多显示４个ｂａｔｃh
+    batch, _, _, _ = batch_data[0]["template"].shape
+    batch = min(batch, max_batch)
 
-    if rank == 0 and global_iter%100==0:
+    if rank == 0 and global_iter%200==0:
         for i in range(cfg.GRU.SEQ_IN):
             xi =batch_data[i] # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','bbox','neg'
-            batch,_,_,_ = xi["template"].shape
-            tensor_t = draw_rect(xi["template"], xi["t_bbox"].view(batch,-1,4))
-            tensor_s = draw_rect(xi["search"], xi["s_bbox"].view(batch,-1,4))
+
+            tensor_t = draw_rect(xi["template"][0:batch], xi["t_bbox"][0:batch].view(batch,-1,4))
+            tensor_s = draw_rect(xi["search"][0:batch], xi["s_bbox"][0:batch].view(batch,-1,4))
             tb_xi_template = vutils.make_grid(tensor_t, normalize=True,  scale_each=True)  # b c h w的图展开为多个图
             tb_writer.add_image('input/{}th_input_template'.format(i), tb_xi_template, global_iter)  # t_bbox是相对于模板坐标系的
             tb_xi_search = vutils.make_grid(tensor_s, normalize=True, scale_each=True)  # b c h w的图展开为多个图
@@ -210,9 +215,9 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
 
         for i in range(cfg.GRU.SEQ_OUT):
             xi = batch_data[i+cfg.GRU.SEQ_IN]  # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','bbox','neg'
-            batch,_,_,_ = xi["template"].shape
-            tensor_t = draw_rect(xi["template"], xi["t_bbox"].view(batch,-1,4))
-            tensor_s = draw_rect(xi["search"], xi["s_bbox"].view(batch,-1,4))
+
+            tensor_t = draw_rect(xi["template"][0:batch], xi["t_bbox"][0:batch].view(batch,-1,4))
+            tensor_s = draw_rect(xi["search"][0:batch], xi["s_bbox"][0:batch].view(batch,-1,4))
             tb_xi_template = vutils.make_grid(tensor_t, normalize=True,  scale_each=True)  # b c h w的图展开为多个图
             tb_writer.add_image('input/{}th_output_template'.format(i+cfg.GRU.SEQ_IN), tb_xi_template, global_iter)  # t_bbox是相对于模板坐标系的
             tb_xi_search = vutils.make_grid(tensor_s, normalize=True, scale_each=True)  # b c h w的图展开为多个图
@@ -223,7 +228,7 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
             fb,fc,fh,fw=feat.shape
             fc =(min(fc,9)//3)*3            #最多显示9个通道的数据
             for i in range(0,fc,3):
-                tb_feat = vutils.make_grid(feat[:,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
+                tb_feat = vutils.make_grid(feat[0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
                 tb_writer.add_image('feature/{}th_feat'.format(i), tb_feat, global_iter)                # t_bbox是相对于模板坐标系的
 
 
@@ -231,7 +236,7 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
             fb, fc, fh, fw = feat.shape
             fc = (min(fc, 9) // 3) * 3  # 最多显示9个通道的数据
             for i in range(0, fc, 3):
-                tb_feat_gt = vutils.make_grid(feat_gt[:,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
+                tb_feat_gt = vutils.make_grid(feat_gt[0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
                 tb_writer.add_image('feature/{}th_feat_gt'.format(i), tb_feat_gt, global_iter)  # t_bbox是相对于模板坐标系的
 
 

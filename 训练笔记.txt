@@ -17,3 +17,8 @@ train --cfg /home/rainzsy/projects/Pytorch/Pysot/experiments/siamrpn_alex_dwxcor
 3、依据coco数据集生成simese需要的crop511格式的数据
 	修改  pyot-master/training_dataset/coco/par_crop.py的入口处的data_dir执行coco数据所在文件夹
 
+
+４控制台运行
+export PYTHONPATH=/path/to/pysot:$PYTHONPATH\
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=1 --master_port=2334 ../../tools/train_gru.py --cfg config_gru.yaml
+

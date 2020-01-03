@@ -46,6 +46,7 @@ class GRU_Model(nn.Module):
 
         self.seq_in_len = seq_in_len
         self.seq_out_len =seq_out_len
+        self.seq_len = seq_in_len+seq_out_len
         gru_set = GRU_PARAMS["gru_sets"]
 
         self.num_layers = gru_set["hidden_grus"]
@@ -80,15 +81,12 @@ class GRU_Model(nn.Module):
 
     def forward(self, X):
 
-     #   X_chunked = torch.chunk(X, args.seq_start, dim=1)  #
-        X_adjust = [None] *  self.seq_in_len          #通道调整
-        for i in range( self.seq_in_len):
-            X_adjust[i] = self.conv(X[:,i,:,:,:]); #输入 B T C H W 拆分为seq_start份，每份B 1 C H W大小
 
+        # 通道调整
+        b, t, c, h, w = X.shape
+        gru_in = self.conv(X.reshape(b * t, c, h, w)).reshape(b, t, self.gru_in_dim, h, w)
+        hidden_state, last_state = self.conv_gru(gru_in);  # 最后一个gru模块的隐含层，以及它的最后状态，都是list,list中的元素大小分别为【n,t,c,h,w】,[n,c,h,w]
 
-        gru_in = torch.stack(X_adjust,dim=1)      #将【B C H W】拼接成[B T C H W]
-
-        hidden_state,last_state = self.conv_gru(gru_in);    #最后一个gru模块的隐含层，以及它的最后状态，都是list,list中的元素大小分别为【n,t,c,h,w】,[n,c,h,w]
 
         if self.return_all_layes:
             hidden_state =hidden_state[-1]   #只取最后一个gru模块的输出

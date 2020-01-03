@@ -59,7 +59,7 @@ __C.TRAIN.START_EPOCH = 0       #开始的epoch用于从不同的断点恢复，
 
 __C.TRAIN.BATCH_SIZE = 4
 
-__C.TRAIN.NUM_WORKERS = 1
+__C.TRAIN.NUM_WORKERS = 16
 
 __C.TRAIN.MOMENTUM = 0.9
 

@@ -58,7 +58,7 @@ class Augmentation:
     def _blur_aug(self, image,area_ratio=0.0625):
         def rand_kernel(area_ratio):
 
-            size = np.random.randint(3,max(3,int(area_ratio*144)))      #area_ratio/0.0625*9 = area_ratio*144
+            size = np.random.randint(3,max(5,int(area_ratio*144)))      #area_ratio/0.0625*9 = area_ratio*144
             size = (size//2)*2+1            #保证卷积核为奇数
             size =min(size,45)              #限制最大卷积核为45保持原始pysot一致
 
