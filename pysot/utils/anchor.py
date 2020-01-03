@@ -34,6 +34,10 @@ class Anchors:
         generate anchors based on predefined configuration
         按照stride*stride作为参考基准，按照不同比例ratios,生产多个尺度的anchor
         例如：alexnet: stride =8, ratios = [0.33, 0.5, 1, 2, 3], 尺度为【8】
+        取anchor的方式为：
+                ws = stride/sqrt(ratio)
+                hs = stride*sqrt(ratio)
+        从而保证 hs/ws =ratio 也就是宽高比保持为ration
         输出的anchor的值为[-w*0.5, -h*0.5, w*0.5, h*0.5]，相当于是（x1,y1,x2,y2)坐标
         """
         self.anchors = np.zeros((self.anchor_num, 4), dtype=np.float32)
@@ -53,14 +57,14 @@ class Anchors:
         """
         依据输入图像大小和rpn特征图大小size，以及generate_anchors生成的单点的anchor信息，为rpn输出层特征每一点生成anchor的相关信息
         im_c: image center （搜索区域图像的中心 255//2）
-        size: image size  (输出特征图的大小17*17)
+        size: image size  (输出相关操作后的特征图的大小17*17)
         """
         if self.image_center == im_c and self.size == size:
             return False
         self.image_center = im_c
         self.size = size
 
-        a0x = im_c - size // 2 * self.stride                #在输入分辨下，模板与搜索区域中心对其，模板左上角的坐标
+        a0x = im_c - size // 2 * self.stride                #在输入分辨下，相关面与搜索区域中心对齐，相关面左上角的坐标，也就模板第一次卷积对应的中心位置，通过加减0.5w得到anchor左上右下的坐标
         ori = np.array([a0x] * 4, dtype=np.float32)
         zero_anchors = self.anchors + ori                   #为坐上角那个点产生anchor  大小为[n,4]
 

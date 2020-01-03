@@ -19,6 +19,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
+import torchvision.utils as vutils
+
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data.distributed import DistributedSampler
 
@@ -30,8 +32,11 @@ from pysot.utils.model_load import load_pretrain, restore_from
 from pysot.utils.average_meter import AverageMeter
 from pysot.utils.misc import describe, commit
 from pysot.models.model_builder import ModelBuilder
-from pysot.datasets.dataset import TrkDataset
+from pysot.datasets.dataset import SeqTrkDataset
 from pysot.core.config import cfg
+from pysot.show import draw_rect
+
+
 
 
 logger = logging.getLogger('global')
@@ -43,6 +48,8 @@ parser.add_argument('--seed', type=int, default=123456,
 parser.add_argument('--local_rank', type=int, default=0,
                     help='compulsory for pytorch launcer')
 args = parser.parse_args()
+
+
 
 
 def seed_torch(seed=0):
@@ -62,8 +69,9 @@ def build_data_loader():
 
     logger.info("build train dataset")
     # train_dataset
-    train_dataset = TrkDataset()   ##为feature map生成anchor的位置信息，通过json文件加载训练数据集（数据集合一视频为单位，保证每个视频至少一个跟踪目标，每个目标跟踪标注信息至少有一帧），设置数据增强的参数
-    logger.info("build dataset done")
+    ##为feature map生成anchor的位置信息，通过json文件加载训练数据集（数据集合一视频为单位，保证每个视频至少一个跟踪目标，每个目标跟踪标注信息至少有一帧），设置数据增强的参数
+    train_dataset = SeqTrkDataset(seq_input_len=cfg.GRU.SEQ_IN,seq_output_len=cfg.GRU.SEQ_OUT)
+    logger.info("build SeqTrkDataset done")
 
     train_sampler = None
     if get_world_size() > 1:
@@ -115,6 +123,14 @@ def build_opt_lr(model, current_epoch=0):
     if cfg.REFINE.REFINE:
         trainable_params += [{'params': model.refine_head.parameters(),
                               'lr': cfg.TRAIN.LR.BASE_LR}]
+
+    # 如果使用gru
+    if cfg.GRU.USE_GRU:
+        trainable_params += [{'params': model.grus.parameters(),
+                              'lr': cfg.TRAIN.BASE_LR}]
+
+
+
     #优化器使用带动量的SGD
     optimizer = torch.optim.SGD(trainable_params,
                                 momentum=cfg.TRAIN.MOMENTUM,
@@ -162,6 +178,63 @@ def log_grads(model, tb_writer, tb_index):
     tb_writer.add_scalar('grad/rpn', rpn_norm, tb_index)
 
 
+
+
+def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
+    '''
+    :param batch_data: 输入的网络的数据
+    :param global_iter:   tensorboard监视计数
+    :param tb_writer:  tensorboard 的summarywriter
+    :return:
+    '''
+
+    rank = get_rank()
+    # global_iter = 0  # tensorboard监视计数
+    # if rank==0:
+    #     dataiter = iter(train_loader)
+    #     data = next(dataiter)               #利用迭代器只取一个数据，用于构建图
+    #     # tb_writer.add_graph(model,data)
+
+
+    if rank == 0 and global_iter%100==0:
+        for i in range(cfg.GRU.SEQ_IN):
+            xi =batch_data[i] # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','bbox','neg'
+            batch,_,_,_ = xi["template"].shape
+            tensor_t = draw_rect(xi["template"], xi["t_bbox"].view(batch,-1,4))
+            tensor_s = draw_rect(xi["search"], xi["s_bbox"].view(batch,-1,4))
+            tb_xi_template = vutils.make_grid(tensor_t, normalize=True,  scale_each=True)  # b c h w的图展开为多个图
+            tb_writer.add_image('input/{}th_input_template'.format(i), tb_xi_template, global_iter)  # t_bbox是相对于模板坐标系的
+            tb_xi_search = vutils.make_grid(tensor_s, normalize=True, scale_each=True)  # b c h w的图展开为多个图
+            tb_writer.add_image('input/{}th_input_search'.format(i), tb_xi_search, global_iter)  # s_bbox是相对于搜索区域坐标系的
+
+
+        for i in range(cfg.GRU.SEQ_OUT):
+            xi = batch_data[i+cfg.GRU.SEQ_IN]  # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','bbox','neg'
+            batch,_,_,_ = xi["template"].shape
+            tensor_t = draw_rect(xi["template"], xi["t_bbox"].view(batch,-1,4))
+            tensor_s = draw_rect(xi["search"], xi["s_bbox"].view(batch,-1,4))
+            tb_xi_template = vutils.make_grid(tensor_t, normalize=True,  scale_each=True)  # b c h w的图展开为多个图
+            tb_writer.add_image('input/{}th_output_template'.format(i+cfg.GRU.SEQ_IN), tb_xi_template, global_iter)  # t_bbox是相对于模板坐标系的
+            tb_xi_search = vutils.make_grid(tensor_s, normalize=True, scale_each=True)  # b c h w的图展开为多个图
+            tb_writer.add_image('input/{}th_output_search'.format(i+cfg.GRU.SEQ_IN), tb_xi_search, global_iter)  # s_bbox是相对于搜索区域坐标系的
+
+
+        if feat is not None:
+            fb,fc,fh,fw=feat.shape
+            fc =(min(fc,9)//3)*3            #最多显示9个通道的数据
+            for i in range(0,fc,3):
+                tb_feat = vutils.make_grid(feat[:,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
+                tb_writer.add_image('feature/{}th_feat'.format(i), tb_feat, global_iter)                # t_bbox是相对于模板坐标系的
+
+
+        if feat_gt is not None:
+            fb, fc, fh, fw = feat.shape
+            fc = (min(fc, 9) // 3) * 3  # 最多显示9个通道的数据
+            for i in range(0, fc, 3):
+                tb_feat_gt = vutils.make_grid(feat_gt[:,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
+                tb_writer.add_image('feature/{}th_feat_gt'.format(i), tb_feat_gt, global_iter)  # t_bbox是相对于模板坐标系的
+
+
 def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
     '''
     :param train_loader:
@@ -180,13 +253,11 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
         return not(math.isnan(x) or math.isinf(x) or x > 1e4)
 
     world_size = get_world_size()
-    num_per_epoch = len(train_loader.dataset) // \
-        cfg.TRAIN.EPOCH // (cfg.TRAIN.BATCH_SIZE * world_size)
+    num_per_epoch = len(train_loader.dataset) // cfg.TRAIN.EPOCH // (cfg.TRAIN.BATCH_SIZE * world_size)
     start_epoch = cfg.TRAIN.START_EPOCH
     epoch = start_epoch
 
-    if not os.path.exists(cfg.TRAIN.SNAPSHOT_DIR) and \
-            get_rank() == 0:
+    if not os.path.exists(cfg.TRAIN.SNAPSHOT_DIR) and get_rank() == 0:
         os.makedirs(cfg.TRAIN.SNAPSHOT_DIR)
 
     logger.info("model\n{}".format(describe(model.module)))   #打印模型
@@ -221,15 +292,17 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
             for idx, pg in enumerate(optimizer.param_groups):       #将优化器中的学习率添加到tensorboard中监视
                 logger.info('epoch {} lr {}'.format(epoch+1, pg['lr']))
                 if rank == 0:
-                    tb_writer.add_scalar('lr/group{}'.format(idx+1),
-                                         pg['lr'], tb_idx)
+                    tb_writer.add_scalar('lr/group{}'.format(idx+1),   pg['lr'], tb_idx)
 
         data_time = average_reduce(time.time() - end)
         if rank == 0:
             tb_writer.add_scalar('time/data', data_time, tb_idx)
 
+       # show_tensor(data, tb_idx, tb_writer)  # 只看输入数据，在tensorboard中显示输入数据
         outputs = model(data)
         loss = outputs['total_loss']
+        show_tensor(data, tb_idx, tb_writer,outputs['zf'],outputs['zf_gt'])  #输入输出都看，在tensorboard中显示输入数据
+
 
         if is_valid_number(loss.data.item()):           #判断损失是否是合法数据，滤掉nan,+inf，>10000的这样的损失
             optimizer.zero_grad()
@@ -248,7 +321,10 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
         batch_info['batch_time'] = average_reduce(batch_time)
         batch_info['data_time'] = average_reduce(data_time)
         for k, v in sorted(outputs.items()):
-            batch_info[k] = average_reduce(v.data.item())
+            if k is 'zf' or k is  'zf_gt':
+                pass
+            else:
+             batch_info[k] = average_reduce(v.data.item())
 
         average_meter.update(**batch_info)
 
@@ -268,9 +344,7 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
                         info += ("{:s}\n").format(
                                 getattr(average_meter, k))
                 logger.info(info)
-                print_speed(idx+1+start_epoch*num_per_epoch,
-                            average_meter.batch_time.avg,
-                            cfg.TRAIN.EPOCH * num_per_epoch)
+                print_speed(idx+1+start_epoch*num_per_epoch, average_meter.batch_time.avg,cfg.TRAIN.EPOCH * num_per_epoch)
         end = time.time()
 
 
@@ -281,9 +355,6 @@ def main():
 
     # load cfg
     cfg.merge_from_file(args.cfg)                   #将core下面的config配置文件与experiments里面的配置文件融合，因实验不同，修改默认参数
-
-
-
     if rank == 0:
         if not os.path.exists(cfg.TRAIN.LOG_DIR):   #在tools 路径下建立log日志文件家
             os.makedirs(cfg.TRAIN.LOG_DIR)

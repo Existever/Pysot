@@ -69,6 +69,8 @@ __C.TRAIN.CLS_WEIGHT = 1.0      #位置损失的权重
 
 __C.TRAIN.LOC_WEIGHT = 1.2      #类别算是的权重
 
+__C.TRAIN.FEAT_WEIGHT =0.1      #GRU特征权重
+
 __C.TRAIN.MASK_WEIGHT = 1
 
 __C.TRAIN.PRINT_FREQ = 20       #控制台每多少次数打印一次信息
@@ -150,7 +152,7 @@ __C.DATASET.COCO.NUM_USE = -1     #使用多少个视频，-1表示使用全部�
 __C.DATASET.VID = CN()
 __C.DATASET.VID.ROOT = 'training_dataset/vid/crop511'
 __C.DATASET.VID.ANNO = 'training_dataset/vid/train_mini.json'       #人为挑出来的几个视频序列用于调试流程
-__C.DATASET.VID.FRAME_RANGE = 100
+__C.DATASET.VID.FRAME_RANGE = 10                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
 __C.DATASET.VID.NUM_USE = 100000  # repeat until reach NUM_USE
 
 # __C.DATASET.NAMES = ('VID', 'COCO', 'DET', 'YOUTUBEBB')
@@ -201,6 +203,21 @@ __C.BACKBONE.LAYERS_LR = 0.1  #backbone开始训练时，他的学习率要比rp
 
 # Switch to train layer
 __C.BACKBONE.TRAIN_EPOCH = 10   #注意当 current_epoch >= cfg.BACKBONE.TRAIN_EPOCH时设定的backbone的后几层才会参与训练，否则梯度不反向传播，且BN层参数不要更新
+
+
+# ------------------------------------------------------------------------ #
+# GRU param  options
+# ------------------------------------------------------------------------ #
+__C.GRU = CN()
+__C.GRU.USE_GRU = False       #是否使用GRU模块
+__C.GRU.SEQ_IN = 3         #GRU连续输入序列长度
+__C.GRU.SEQ_OUT = 1         #GRU输出预测序列长度,对于跟踪问题只设置为1
+__C.GRU.FeatLoss = False    #GRU计算特征图是否计算损失
+
+
+
+
+
 
 # ------------------------------------------------------------------------ #
 # Adjust layer options

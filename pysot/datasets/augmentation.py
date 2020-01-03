@@ -62,7 +62,7 @@ class Augmentation:
             size = (size//2)*2+1            #保证卷积核为奇数
             size =min(size,45)              #限制最大卷积核为45保持原始pysot一致
 
-            print('area_ratio', area_ratio,size)
+            #print('area_ratio', area_ratio,size)
 
             kernel = np.zeros((size, size))
             c = int(size/2)
@@ -89,8 +89,8 @@ class Augmentation:
     def _shift_scale_aug(self, image, bbox, crop_bbox, size):
         ''' 对具有上下文信息的gt bbox进行位移和缩放调整，然后输出的bbox，和对应的图像区域
         :param image:
-        :param bbox:  带有上下文信息的box（gt值）
-        :param crop_bbox: 要crop的bbox位置信息
+        :param bbox:  带有上下文信息的box（gt值），在crop511坐标系下的坐标
+        :param crop_bbox: 要crop的bbox位置信息 127*127或者255*255
         :param size: 期望crop出来的区域尺寸，网络输入时模板大小127*127，或者搜索区域大小255*255
         :return:返回的图像，是按照增强后的crop_box扣取出的roi图像区域，返回的bbox是gt信息也做相应调整后并转化到crop图像坐标系下的位置信息
         '''
@@ -124,7 +124,9 @@ class Augmentation:
 
         # adjust target bounding box  要crop的box的变换上面已经确定，这里需要将他的gt信息也同样做调整
         x1, y1 = crop_bbox.x1, crop_bbox.y1
-        bbox = Corner(bbox.x1 - x1, bbox.y1 - y1,       #以要crop输出的box的左上角为参考点，计算bbox新的坐标，也就是相应得修改gt的信息，与要crop的内容保持一致
+        # 以要crop输出的box的左上角为参考点，计算bbox新的坐标，也就是相应得修改gt的信息，与要crop的内容保持一致
+        # 输出的bbox是相对与127*127或者255*255图像下的坐标，
+        bbox = Corner(bbox.x1 - x1, bbox.y1 - y1,
                       bbox.x2 - x1, bbox.y2 - y1)
 
         if self.scale:
@@ -149,7 +151,7 @@ class Augmentation:
     def __call__(self, image, bbox, size, gray=False):
         '''
         :param image: crop后的图像，大小511*511，模板图像已经对齐到图像中心，
-        :param bbox: 带有上下文信息的box大小
+        :param bbox: 带有上下文信息的box大小，在crop511坐标系下的坐标
         :param size: 网络输入时模板大小127*127，或者搜索区域大小255*255
         :param gray: 是否进行灰度化
         :return:
