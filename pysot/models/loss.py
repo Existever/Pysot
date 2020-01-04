@@ -56,14 +56,14 @@ def weight_feat_loss(pred_feat, label_feat, bbox,stride=21.0):
 
     fb,fc,fh,fw=pred_feat.shape
     bbox =bbox/stride
-    x = torch.arange(fw).reshape(1,1,fw).repeat(fb,fh, 1)
-    y = torch.arange(fh).reshape(1,fh,1).repeat(fb,1,fw)
-    bbox = bbox.reshape(fb,1,1,4).round()                                   #对坐标四舍五入
+    x = torch.arange(fw).reshape(1,1,fw).repeat(fb,fh, 1).float()
+    y = torch.arange(fh).reshape(1,fh,1).repeat(fb,1,fw).float()
+    bbox = bbox.reshape(fb,1,1,4).round().float()                                   #对坐标四舍五入
     x1, y1, x2, y2 = bbox[...,0],bbox[...,1],bbox[...,2],bbox[...,3]
 
 
     cond = (x >= x1) & (x <= x2) & (y >= y1) & (y <= y2)
-    mask=torch.where(cond, torch.Tensor([0.9]),torch.Tensor([0.1])).cuda()  #满足条件的目标区域的损失占比为0.9，背景区域占比为0.1
+    mask=torch.where(cond, torch.FloatTensor([0.9]),torch.FloatTensor([0.1])).cuda()  #满足条件的目标区域的损失占比为0.9，背景区域占比为0.1
     diff = (pred_feat - label_feat).abs()                                   #对于 feature map都直接算1范数
     diff = diff.sum(dim=1).view(fb, -1, fh, fw)
     loss = diff * mask                              #乘以权重相当于只在正样本位置求平均

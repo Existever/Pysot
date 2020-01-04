@@ -137,6 +137,8 @@ def build_opt_lr(model, current_epoch=0):
     optimizer = torch.optim.SGD(trainable_params,
                                 momentum=cfg.TRAIN.MOMENTUM,
                                 weight_decay=cfg.TRAIN.WEIGHT_DECAY)
+    # optimizer = torch.optim.Adam(trainable_params,
+    #                             weight_decay=cfg.TRAIN.WEIGHT_DECAY)
 
     lr_scheduler = build_lr_scheduler(optimizer, epochs=cfg.TRAIN.EPOCH)
     lr_scheduler.step(cfg.TRAIN.START_EPOCH)
@@ -182,7 +184,7 @@ def log_grads(model, tb_writer, tb_index):
 
 
 
-def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
+def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None,feat_zfs=None):
     '''
     :param batch_data: 输入的网络的数据
     :param global_iter:   tensorboard监视计数
@@ -224,6 +226,7 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
             tb_writer.add_image('input/{}th_output_search'.format(i+cfg.GRU.SEQ_IN), tb_xi_search, global_iter)  # s_bbox是相对于搜索区域坐标系的
 
 
+
         if feat is not None:
             fb,fc,fh,fw=feat.shape
             fc =(min(fc,9)//3)*3            #最多显示9个通道的数据
@@ -231,6 +234,16 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None):
                 tb_feat = vutils.make_grid(feat[0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
                 tb_writer.add_image('feature/{}th_feat'.format(i), tb_feat, global_iter)                # t_bbox是相对于模板坐标系的
 
+        if feat_zfs is not None:
+            _, ft, _, _, _ = feat_zfs.shape
+            for t in range(ft):
+                feat = feat_zfs[:, t, ...]
+                fb, fc, fh, fw = feat.shape
+                fc = (min(fc, 9) // 3) * 3  # 最多显示9个通道的数据
+                for i in range(0, fc, 3):
+                    tb_feat = vutils.make_grid(feat[0:batch, i:i + 3, ...], normalize=True,
+                                               scale_each=True)  # b c h w的图展开为多个图
+                    tb_writer.add_image('feature/{}th_{}feat'.format(i, t), tb_feat, global_iter)  # t_bbox是相对于模板坐标系的
 
         if feat_gt is not None:
             fb, fc, fh, fw = feat.shape
@@ -305,8 +318,8 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
 
        # show_tensor(data, tb_idx, tb_writer)  # 只看输入数据，在tensorboard中显示输入数据
         outputs = model(data)
-        loss = outputs['total_loss']
-        show_tensor(data, tb_idx, tb_writer,outputs['zf'],outputs['zf_gt'])  #输入输出都看，在tensorboard中显示输入数据
+        loss = outputs['feat_loss']
+        show_tensor(data, tb_idx, tb_writer,outputs['zf'],outputs['zf_gt'],outputs['zfs'])  #输入输出都看，在tensorboard中显示输入数据
 
 
         if is_valid_number(loss.data.item()):           #判断损失是否是合法数据，滤掉nan,+inf，>10000的这样的损失
@@ -326,7 +339,7 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
         batch_info['batch_time'] = average_reduce(batch_time)
         batch_info['data_time'] = average_reduce(data_time)
         for k, v in sorted(outputs.items()):
-            if k is 'zf' or k is  'zf_gt':
+            if k is 'zf' or k is  'zf_gt'or k is  'zfs':
                 pass
             else:
              batch_info[k] = average_reduce(v.data.item())

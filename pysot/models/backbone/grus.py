@@ -81,11 +81,12 @@ class GRU_Model(nn.Module):
 
     def forward(self, X):
 
-
         # 通道调整
         b, t, c, h, w = X.shape
         gru_in = self.conv(X.reshape(b * t, c, h, w)).reshape(b, t, self.gru_in_dim, h, w)
         hidden_state, last_state = self.conv_gru(gru_in);  # 最后一个gru模块的隐含层，以及它的最后状态，都是list,list中的元素大小分别为【n,t,c,h,w】,[n,c,h,w]
+
+
 
 
         if self.return_all_layes:

@@ -49,6 +49,7 @@ class ConvGRUCell(nn.Module):
                               padding=self.padding,
                               bias=self.bias)
         self.cand_bn = nn.BatchNorm2d(self.hidden_dim)
+        self.relu = torch.nn.LeakyReLU(negative_slope=0.1)
 
         ## gru初始化很很重要
         #init_cnn_weight= torch.nn.init.kaiming_normal_
@@ -96,9 +97,8 @@ class ConvGRUCell(nn.Module):
         combined = torch.cat([input_tensor, reset_gate*h_cur], dim=1)     #复位门作用在隐层之后，与输入在通道维度上concat
         cc_cnm = self.conv_can(combined)                                  #最后输出门卷积得到候选值
         cc_cnm =self.cand_bn(cc_cnm)
-        cnm = torch.tanh(cc_cnm)
-        #act = torch.nn.LeakyReLU(negative_slope=0.1)
-        #cnm = act(cc_cnm)
+        # cnm = torch.tanh(cc_cnm)
+        cnm =  self.relu(cc_cnm)
 
         h_next = (1 - update_gate) * h_cur + update_gate * cnm           #融合上一状态和候选值就得到新的状态
         return h_next

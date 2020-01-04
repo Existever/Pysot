@@ -104,23 +104,37 @@ class ModelBuilder(nn.Module):
         #如果使用gru,模板需要在前t帧中累积提取，搜索区域只在最后一帧中提取
         else:
 
-            batch, _, _, _ = data[0]["template"].shape
-            zfs = [None] * (self.grus.seq_len)  # 多帧模板图z的特征f
-            for i in range(self.grus.seq_len):
+            zfs = [None] * self.grus.seq_in_len  # 多帧模板图z的特征f
+            for i in range(self.grus.seq_in_len):
                 # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','t_bbox','s_bbox''neg'
-                zfs[i] = data[i]["template"]
+                zfs[i] = self.backbone(data[i]["template"].cuda())
 
-            #连续ｔ个序列在ｂａtch层面上并行，加快计算速度
-            zfs = torch.cat(zfs,dim=0).cuda()
-            zfs = self.backbone(zfs).reshape(batch, self.grus.seq_len, self.grus.input_channels, self.grus.input_height, self.grus.input_width)
+                zfs=torch.stack(zfs,dim=1)            #将输入变为[n,t,c,h,w]的形式
+            zf =self.grus(zfs).squeeze()          #grus输出为[n,1,c,h，w]的形式转化为【n,c,h,w】的形式
 
+            #搜索区域只需要取模板序列组输入完成后的下一帧搜索区域图像就可以
+            xf =  self.backbone(data[self.grus.seq_in_len]["search"].cuda())
 
-            zf_gt = zfs[:, self.grus.seq_in_len, ...]
-            zfs = zfs[:, 0:self.grus.seq_in_len, ...]
-            zf = self.grus(zfs).squeeze()  # grus输出为[n,1,c,h，w]的形式转化为【n,c,h,w】的形式
-            # 搜索区域只需要取模板序列组输入完成后的下一帧搜索区域图像就可以
-            xf = self.backbone(data[self.grus.seq_in_len]["search"].cuda())
+#-------------------------------特征提取并行化-----------------------------------------------------
 
+            # batch, _, _, _ = data[0]["template"].shape
+            # zfs = [None] * (self.grus.seq_in_len)  # 多帧模板图z的特征f
+            # for i in range(self.grus.seq_in_len):
+            #     # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','t_bbox','s_bbox''neg'
+            #     zfs[i] = data[i]["template"]
+            #
+            # #连续ｔ个序列在ｂａtch层面上并行，加快计算速度
+            # zfs =  self.backbone( torch.cat(zfs,dim=0).cuda())
+            # zfs =zfs.reshape(self.grus.seq_in_len, batch,  self.grus.input_channels, self.grus.input_height, self.grus.input_width)
+            # zfs =zfs.permute(1, 0, 2, 3, 4).contiguous()
+            #
+            #
+            # zf =self.grus(zfs).squeeze()          #grus输出为[n,1,c,h，w]的形式转化为【n,c,h,w】的形式
+            #
+            # #搜索区域只需要取模板序列组输入完成后的下一帧搜索区域图像就可以
+            # xf =  self.backbone(data[self.grus.seq_in_len]["search"].cuda())
+
+# ------------------------------------------------------------------------------------
 
             # 标签信息的提取方式和搜索区域的提取保持同步
             label_cls = data[self.grus.seq_in_len]['label_cls'].cuda()                #cls（此anchor是正样本：1、负样本：0、忽略：-1
@@ -153,7 +167,7 @@ class ModelBuilder(nn.Module):
 
         # 是否计算GRU预测特征的损失
         if cfg.GRU.FeatLoss:
-            # zf_gt = self.backbone(data[self.grus.seq_in_len]["template"].cuda())
+            zf_gt = self.backbone(data[self.grus.seq_in_len]["template"].cuda())
             feat_loss=weight_feat_loss(zf, zf_gt, data[self.grus.seq_in_len]["t_bbox"])
             outputs['total_loss'] += cfg.TRAIN.FEAT_WEIGHT * feat_loss
             outputs['feat_loss']    =feat_loss
@@ -161,6 +175,7 @@ class ModelBuilder(nn.Module):
             #传出去tensorboard监视看
             outputs['zf_gt'] = zf_gt
             outputs['zf'] = zf
+            outputs['zfs'] = zf_gru_in
 
 
 

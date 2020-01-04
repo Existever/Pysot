@@ -104,7 +104,7 @@ venv.bak/
 .mypy_cache/
 
 testing_dataset/*
-experiments
+
 
 *.pth
 
@@ -137,3 +137,23 @@ tools/crop_sketch/crop_template.jpg
 tools/crop_sketch/crop_search.jpg
 
 *.gz
+
+experiments/siammask_r50_l3/
+
+experiments/siamrpn_alex_dwxcorr_16gpu/logs/
+
+experiments/siamrpn_alex_dwxcorr_otb/
+
+experiments/siamrpn_mobilev2_l234_dwxcorr/
+
+experiments/siamrpn_r50_l234_dwxcorr/
+
+experiments/siamrpn_r50_l234_dwxcorr_16gpu/
+
+experiments/siamrpn_r50_l234_dwxcorr_8gpu/
+
+experiments/siamrpn_r50_l234_dwxcorr_lt/
+
+experiments/siamrpn_r50_l234_dwxcorr_otb/
+
+experiments/siamrpn_r50_l234_dwxcorr_otb_8gpu/
