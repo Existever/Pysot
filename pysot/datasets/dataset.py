@@ -411,7 +411,7 @@ class SeqTrkDataset(Dataset):
     '''
 
     '''
-    def __init__(self,seq_input_len=10,seq_output_len=2):
+    def __init__(self,seq_input_len=3,seq_output_len=1):
         super(SeqTrkDataset, self).__init__()
         #特征图输出size为：（搜索区域尺寸 -- 模板尺寸)/stride +1  ,没有padding
         desired_size = (cfg.TRAIN.SEARCH_SIZE - cfg.TRAIN.EXEMPLAR_SIZE) / \

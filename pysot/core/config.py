@@ -53,6 +53,10 @@ __C.TRAIN.LOG_DIR = './logs'
 
 __C.TRAIN.SNAPSHOT_DIR = './snapshot'
 
+__C.TRAIN.MaxShowBatch =4           #tensorboard最大的显示batch数目
+
+__C.TRAIN.ShowPeriod =200            #每多少次迭代像tensorboard中添加一次图像及结果的显示
+
 __C.TRAIN.EPOCH = 20
 
 __C.TRAIN.START_EPOCH = 0       #开始的epoch用于从不同的断点恢复，调整学习率
@@ -213,6 +217,8 @@ __C.GRU.USE_GRU = False       #是否使用GRU模块
 __C.GRU.SEQ_IN = 3         #GRU连续输入序列长度
 __C.GRU.SEQ_OUT = 1         #GRU输出预测序列长度,对于跟踪问题只设置为1
 __C.GRU.FeatLoss = False    #GRU计算特征图是否计算损失
+__C.GRU.LR_COFF = 0.1      #联合训练的时候GRU模块的学习率比例系数
+
 
 
 
@@ -323,3 +329,6 @@ __C.TRACK.MASK_THERSHOLD = 0.30
 
 # Mask output size
 __C.TRACK.MASK_OUTPUT_SIZE = 127
+
+
+

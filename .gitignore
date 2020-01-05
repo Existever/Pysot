@@ -157,3 +157,5 @@ experiments/siamrpn_r50_l234_dwxcorr_lt/
 experiments/siamrpn_r50_l234_dwxcorr_otb/
 
 experiments/siamrpn_r50_l234_dwxcorr_otb_8gpu/
+
+*.solanliu-ubuntu

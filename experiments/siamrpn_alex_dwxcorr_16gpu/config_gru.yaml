@@ -54,8 +54,8 @@ TRAIN:
     BASE_LR: 0.005
     CLS_WEIGHT: 1.0
     LOC_WEIGHT: 1.2
-    FEAT_WEIGHT: 0.01
-    RESUME: ''
+    FEAT_WEIGHT: 0.0001
+    RESUME: './snapshot/checkpoint_e10.pth'
 
     LR:
         TYPE: 'log'

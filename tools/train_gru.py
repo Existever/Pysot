@@ -129,7 +129,7 @@ def build_opt_lr(model, current_epoch=0):
     # 如果使用gru
     if cfg.GRU.USE_GRU:
         trainable_params += [{'params': model.grus.parameters(),
-                              'lr': cfg.TRAIN.BASE_LR}]
+                              'lr': cfg.TRAIN.BASE_LR*cfg.GRU.LR_COFF }]
 
 
 
@@ -184,7 +184,7 @@ def log_grads(model, tb_writer, tb_index):
 
 
 
-def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None,feat_zfs=None):
+def show_tensor(batch_data, global_iter,  tb_writer,outputs):
     '''
     :param batch_data: 输入的网络的数据
     :param global_iter:   tensorboard监视计数
@@ -199,11 +199,11 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None,feat_
     #     data = next(dataiter)               #利用迭代器只取一个数据，用于构建图
     #     # tb_writer.add_graph(model,data)
 
-    max_batch=4     #tensorboard最多显示４个ｂａｔｃh
+    max_batch=cfg.TRAIN.MaxShowBatch            #tensorboard最多显示４个ｂａｔｃh
     batch, _, _, _ = batch_data[0]["template"].shape
     batch = min(batch, max_batch)
 
-    if rank == 0 and global_iter%200==0:
+    if rank == 0 and global_iter%cfg.TRAIN.ShowPeriod==0:
         for i in range(cfg.GRU.SEQ_IN):
             xi =batch_data[i] # 每个data[i]中包含的信息为 'template','search','label_cls','label_loc','label_loc_weight','bbox','neg'
 
@@ -227,17 +227,17 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None,feat_
 
 
 
-        if feat is not None:
-            fb,fc,fh,fw=feat.shape
+        if  outputs['zf'] is not None:
+            fb,fc,fh,fw= outputs['zf'].shape
             fc =(min(fc,9)//3)*3            #最多显示9个通道的数据
             for i in range(0,fc,3):
-                tb_feat = vutils.make_grid(feat[0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
+                tb_feat = vutils.make_grid(outputs['zf'][0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
                 tb_writer.add_image('feature/{}th_feat'.format(i), tb_feat, global_iter)                # t_bbox是相对于模板坐标系的
 
-        if feat_zfs is not None:
-            _, ft, _, _, _ = feat_zfs.shape
+        if outputs['zfs'] is not None:
+            _, ft, _, _, _ = outputs['zfs'].shape
             for t in range(ft):
-                feat = feat_zfs[:, t, ...]
+                feat = outputs['zfs'][:, t, ...]
                 fb, fc, fh, fw = feat.shape
                 fc = (min(fc, 9) // 3) * 3  # 最多显示9个通道的数据
                 for i in range(0, fc, 3):
@@ -245,12 +245,15 @@ def show_tensor(batch_data, global_iter,  tb_writer,feat=None,feat_gt=None,feat_
                                                scale_each=True)  # b c h w的图展开为多个图
                     tb_writer.add_image('feature/{}th_{}feat'.format(i, t), tb_feat, global_iter)  # t_bbox是相对于模板坐标系的
 
-        if feat_gt is not None:
-            fb, fc, fh, fw = feat.shape
+        if outputs['zf_gt'] is not None:
+            fb, fc, fh, fw = outputs['zf_gt'].shape
             fc = (min(fc, 9) // 3) * 3  # 最多显示9个通道的数据
             for i in range(0, fc, 3):
-                tb_feat_gt = vutils.make_grid(feat_gt[0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
+                tb_feat_gt = vutils.make_grid(outputs['zf_gt'][0:batch,i:i+3,...], normalize=True, scale_each=True)  # b c h w的图展开为多个图
                 tb_writer.add_image('feature/{}th_feat_gt'.format(i), tb_feat_gt, global_iter)  # t_bbox是相对于模板坐标系的
+
+        if  outputs['box_img'] is not None:
+            tb_writer.add_image('predict/box_img', outputs['box_img'], global_iter)  # t_bbox是相对于模板坐标系的
 
 
 def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
@@ -317,9 +320,10 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
             tb_writer.add_scalar('time/data', data_time, tb_idx)
 
        # show_tensor(data, tb_idx, tb_writer)  # 只看输入数据，在tensorboard中显示输入数据
+        data[0]['iter']=tb_idx                           #添加监视用
         outputs = model(data)
-        loss = outputs['feat_loss']
-        show_tensor(data, tb_idx, tb_writer,outputs['zf'],outputs['zf_gt'],outputs['zfs'])  #输入输出都看，在tensorboard中显示输入数据
+        loss = outputs['total_loss']
+        show_tensor(data, tb_idx, tb_writer,outputs)  #输入输出都看，在tensorboard中显示输入数据
 
 
         if is_valid_number(loss.data.item()):           #判断损失是否是合法数据，滤掉nan,+inf，>10000的这样的损失
@@ -339,7 +343,7 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
         batch_info['batch_time'] = average_reduce(batch_time)
         batch_info['data_time'] = average_reduce(data_time)
         for k, v in sorted(outputs.items()):
-            if k is 'zf' or k is  'zf_gt'or k is  'zfs':
+            if k is 'zf' or k is  'zf_gt'or k is  'zfs'or k is  'box_img':
                 pass
             else:
              batch_info[k] = average_reduce(v.data.item())
