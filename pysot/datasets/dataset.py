@@ -277,27 +277,29 @@ class TrkDataset(Dataset):
         :param index:  这个index是视频片段的索引
         :return:
         '''
-        # dataset=None
-        # idx_offset=0
-        # dataset_num=len( self.all_dataset)
-        # cnt=0                                   #防止循环卡死
-        # while cnt>dataset_num or dataset is None:
-        #     cnt+=1
-        #     idx =np.random.randint(0,dataset_num)            #随机选择一个数据集，看索引是否在这个数据集视频片段范围内
-        #     if index<self.all_dataset[idx].start_idx + self.all_dataset[idx].num:
-        #         dataset =self.all_dataset[idx]
-        #         idx_offset=index - dataset.start_idx
-        #         break
-        #  #检查是否是由于输入index不合法导致的
-        # if dataset==None:
-        #     raise ValueError("The input video index is out of any datasets index,please check dataset num or input index!")
-        #
-        # return dataset,idx_offset
+        dataset = None
+        idx_offset = 0
+        dataset_num = len(self.all_dataset)
+        cnt = 0  # 防止循环卡死
+        while cnt > dataset_num or dataset is None:
+            cnt += 1
+            idx = np.random.randint(0, dataset_num)  # 随机选择一个数据集，看索引是否在这个数据集视频片段范围内
+            if index < self.all_dataset[idx].start_idx + self.all_dataset[idx].num:
+                idx_offset = index - self.all_dataset[idx].start_idx
+                break
 
-        #pysot原版本这样写，对于放在前面的子数据集选择的概率更大，不合适
-        for dataset in self.all_dataset:
-            if dataset.start_idx + dataset.num > index:         #这个地方不妥吧？ 这样
-                return dataset, index - dataset.start_idx
+        # 如果n次随机没有找到，则顺序查找
+        if dataset == None:
+            for dataset in self.all_dataset:
+                if dataset.start_idx + dataset.num > index:  # 这个地方不妥吧？ 这样
+                    return dataset, index - dataset.start_idx
+
+        return dataset, idx_offset
+
+        # # pysot原版本这样写，对于放在前面的子数据集选择的概率更大，不合适
+        # for dataset in self.all_dataset:
+        #     if dataset.start_idx + dataset.num > index:         #这个地方不妥吧？ 这样
+        #         return dataset, index - dataset.start_idx
 
     def _get_bbox(self, image, shape):
         '''
