@@ -146,7 +146,7 @@ __C.DATASET.NEG = 0.2
 __C.DATASET.GRAY = 0.0
 
 
-__C.DATASET.NAMES = (['VID'])    # only use coco for training zsy
+__C.DATASET.NAMES = (['GOT10K','VID'])    # only use coco for training zsy
 __C.DATASET.COCO = CN()
 __C.DATASET.COCO.ROOT = '/media/rainzsy/00024268000F00F7/coco/crop511'
 __C.DATASET.COCO.ANNO = '/media/rainzsy/00024268000F00F7/coco/train2017.json'
@@ -155,9 +155,16 @@ __C.DATASET.COCO.NUM_USE = -1     #使用多少个视频，-1表示使用全部�
 
 __C.DATASET.VID = CN()
 __C.DATASET.VID.ROOT = 'training_dataset/vid/crop511'
-__C.DATASET.VID.ANNO = 'training_dataset/vid/train_mini.json'       #人为挑出来的几个视频序列用于调试流程
+__C.DATASET.VID.ANNO = 'training_dataset/vid/train_mini.json'
 __C.DATASET.VID.FRAME_RANGE = 10                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
 __C.DATASET.VID.NUM_USE = 100000  # repeat until reach NUM_USE
+
+
+__C.DATASET.GOT10K = CN()
+__C.DATASET.GOT10K.ROOT = '/home/rainzsy/datasets/got10k/crop511'
+__C.DATASET.GOT10K.ANNO = 'training_dataset/got10k/train.json'
+__C.DATASET.GOT10K.FRAME_RANGE = 10                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
+__C.DATASET.GOT10K.NUM_USE = -1  # repeat until reach NUM_USE
 
 # __C.DATASET.NAMES = ('VID', 'COCO', 'DET', 'YOUTUBEBB')
 #
