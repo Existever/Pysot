@@ -51,7 +51,7 @@ args = parser.parse_args()
 import os
 
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 
 def seed_torch(seed=0):

@@ -47,7 +47,7 @@ __C.TRAIN.OUTPUT_SIZE = 25  #输出相关面的尺寸
 
 __C.TRAIN.RESUME = ''
 
-__C.TRAIN.PRETRAINED = ''
+__C.TRAIN.PRETRAINED = '../../pretrained_models/siamese_gru10_rpn45.pth'
 
 __C.TRAIN.LOG_DIR = './logs'
 
