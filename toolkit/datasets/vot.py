@@ -43,12 +43,16 @@ class VOTVideo(Video):
         #                         for x in self.gt_traj]
 
         # empty tag
-        all_tag = [v for k, v in self.tags.items() if len(v) > 0 ]
+        all_tag = [v for k, v in self.tags.items() if len(v) > 0 ]              #每个属性的value构成的list作为all_tag这个list中的一个元素
+
+        # 找出某条list中全0的哪些list,则说明对应整个序列中一直不存在某个跟踪特性（camera_motion，size_change等）
         self.tags['empty'] = np.all(1 - np.array(all_tag), axis=1).astype(np.int32).tolist()
         # self.tags['empty'] = np.all(1 - np.array(list(self.tags.values())),
         #         axis=1).astype(np.int32).tolist()
 
         self.tag_names = list(self.tags.keys())
+
+        #加载图像，主要是为了得到图像的高度宽度
         if not load_img:
             img_name = os.path.join(root, self.img_names[0])
             img = np.array(Image.open(img_name), np.uint8)
@@ -94,9 +98,14 @@ class VOTDataset(Dataset):
         name: dataset name, should be 'VOT2018', 'VOT2016', 'VOT2019'
         dataset_root: dataset root
         load_img: wether to load all imgs
+        dataset是以字典的方式组织的，key:视频的名字,value:VOTVideo的对象，该对象中也是以字典的形式组织，
+        字典中包括视频图像的路径，gt_bbox，是否遮挡等信息
     """
     def __init__(self, name, dataset_root, load_img=False):
+       #初始化父类dataset
         super(VOTDataset, self).__init__(name, dataset_root)
+
+
         with open(os.path.join(dataset_root, name+'.json'), 'r') as f:   #读取测试集合的标签文件
             meta_data = json.load(f)
 

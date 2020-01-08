@@ -17,6 +17,7 @@ class Dataset(object):
 
     def __iter__(self):
         keys = sorted(list(self.videos.keys()))
+        #使用yield生成可迭代的生成器
         for key in keys:
             yield self.videos[key]
 

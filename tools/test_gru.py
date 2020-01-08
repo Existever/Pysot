@@ -30,9 +30,9 @@ datasets_root ='/home/rainzsy/datasets/vot/'
 parser = argparse.ArgumentParser(description='siamrpn tracking')
 parser.add_argument('--dataset', default='VOT2018',
                     type=str, help='datasets')
-parser.add_argument('--config', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml',
+parser.add_argument('--config', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/config_gru.yaml',
                     type=str,   help='config file')
-parser.add_argument('--snapshot', default=root_dir+'tools/snapshot/siamese_alexnet_rpn.pth',
+parser.add_argument('--snapshot', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/gru_snapshot/fusion_checkpoint_e16.pth',
                     type=str,    help='snapshot of models to eval')
 parser.add_argument('--video', default='',
                     type=str,   help='eval one special video')
@@ -74,49 +74,83 @@ def save_backbone(siamese):
     torch.save(alexnet_state_dict,"siamese_alexnet_backbone.pth")
 
 
+
+
 def save_siamese_rpn():
     # load config
 
-    cfg.merge_from_file(args.config)
-    cfg.BACKBONE.TYPE ='alexnetlegacy'
+    rpn_path = root_dir + 'experiments/siamrpn_alex_dwxcorr_16gpu/pre_train/checkpoint_e45.pth'
+    gru_rpn = root_dir + 'experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml'
+    cfg.merge_from_file(gru_rpn)
     # create model
-    model_legacy = ModelBuilder()
-    # load model
-    model_legacy = load_pretrain(model_legacy, args.snapshot).cuda().eval()
+    model_rpn = ModelBuilder()
+    model_rpn = load_pretrain(model_rpn, rpn_path).cuda().eval()
 
-    cfg.BACKBONE.TYPE = 'alexnet'
+
+    gru_path = root_dir + 'experiments/siamrpn_alex_dwxcorr_16gpu/gru_snapshot/gru_10.pth'
+    gru_cfg=root_dir + 'experiments/siamrpn_alex_dwxcorr_16gpu/config_gru.yaml'
+    cfg.merge_from_file(gru_cfg)
     # create model
-    model_alexnet = ModelBuilder()
-    #
-    # for key ,item in model.named_parameters():
-    #     print(key,item.shape)
+    model_gru= ModelBuilder()
+    model_gru = load_pretrain(model_gru, gru_path).cuda().eval()
 
-    for key ,item in model_alexnet.named_parameters():
+
+
+
+
+
+    for key ,item in model_gru.named_parameters():
+
+        # print(key.find("grus"))
         print(key,item.shape)
-    name_map={}
-    model_legacy_dict = model_legacy.state_dict()
-    model_alexnet_dict = model_alexnet.state_dict()
-    for para1,para2 in zip(model_legacy.named_parameters(),model_alexnet.named_parameters()):
-        # print(para1[0],para1[1].shape)
-        print(para1[0])
-        print(para2[0])
-        print(para1[1].shape)
-        print(para2[1].shape)
-        print("--"*40)
-        # print("['{}'--->'{}']".format(para1[0], para2[0]),para1[1].shape, para2[1].shape)
-        name_map[para1[0]]=para2[0]
-    print(name_map)
+
+    for key, item in model_rpn.named_parameters():
+        # print(key.find("grus"))
+        print(key, item.shape)
+
+    model_gru_dict = model_gru.state_dict()
+    model_rpn_dict = model_rpn.state_dict()
+
+    for key in model_gru_dict:
+
+        if key.find("grus") !=-1:
+            print("fix:",key)
+
+        else:
+            print("change:",key)
+            model_gru_dict[key]=model_rpn_dict[key]
 
 
-    for key,val in name_map.items():
-        model_alexnet_dict[val]=model_legacy_dict[key]
 
-    torch.save(model_alexnet_dict, "siamese_alexnet_rpn.pth")
+
+
+    # name_map={}
+    # model_legacy_dict = model_legacy.state_dict()
+    # model_alexnet_dict = model_alexnet.state_dict()
+    # for para1,para2 in zip(model_legacy.named_parameters(),model_alexnet.named_parameters()):
+    #     # print(para1[0],para1[1].shape)
+    #     print(para1[0])
+    #     print(para2[0])
+    #     print(para1[1].shape)
+    #     print(para2[1].shape)
+    #     print("--"*40)
+    #     # print("['{}'--->'{}']".format(para1[0], para2[0]),para1[1].shape, para2[1].shape)
+    #     name_map[para1[0]]=para2[0]
+    # print(name_map)
+    #
+    #
+    # for key,val in name_map.items():
+    #     model_alexnet_dict[val]=model_legacy_dict[key]
+
+    torch.save(model_gru_dict, "siamese_gru10_rpn45.pth")
+
+
+
 
 
 def main():
-    # save_siamese_rpn()
     # load config
+    # save_siamese_rpn()
     cfg.merge_from_file(args.config)
 
 
@@ -130,6 +164,11 @@ def main():
 
     # load model
     model = load_pretrain(model, args.snapshot).cuda().eval()
+
+
+
+
+
 
     # save_backbone(model)
 

@@ -38,6 +38,7 @@ class ModelBuilder(nn.Module):
                 raise ValueError("For tracking task GRU_Model.seq_out_len must be set as 1\n",
                                  "please check the value of __C.GRU.SEQ_OUT in config.py file"
                                  )
+            self.zfs = [None] * self.grus.seq_in_len  # 多帧模板图z的特征f,测试前向的时候使用
 
 
         # build adjust layer （siamese rpn++才有这个层）
@@ -57,7 +58,7 @@ class ModelBuilder(nn.Module):
             if cfg.REFINE.REFINE:
                 self.refine_head = get_refine_head(cfg.REFINE.TYPE)
 
-        #---------------------tenosrboard监视用
+        #---------------------tenosrboard监视用-------------------
         # hanning窗口,为tensorboard显示预测结果提前出事
 
         hanning = np.hanning(cfg.TRAIN.OUTPUT_SIZE)  # 生成和输出特征图大小相同的hanning窗
@@ -83,7 +84,35 @@ class ModelBuilder(nn.Module):
 
 
     def template(self, z):          #这里跟踪的时候，不考虑模板更新，将模板分支与搜索区域分支的前向分开，这里只做模板区域的分支的更新
+
         zf = self.backbone(z)
+        if cfg.MASK.MASK:
+            zf = zf[-1]
+        if cfg.ADJUST.ADJUST:
+            zf = self.neck(zf)
+        self.zf = zf
+
+
+
+    def gru_template(self, z,idx):                      #模板区域的分支gru融合前self.grus.seq_in_len个特征
+
+        buf_idx=idx%self.grus.seq_in_len                #当前帧在缓存中的索引
+        self.zfs[buf_idx] = self.backbone(z)
+
+        if idx<self.grus.seq_in_len-1:                  #处在初始化阶段，只返回当前的结果
+            zf= self.zfs[buf_idx]
+        else:
+            #否则用gru融合从当前帧算起一个前seq_in_len帧的特征
+            T=self.grus.seq_in_len
+            gru_zfs = [None] * T  # 多帧模板图z的特征f
+            for t in range(T):
+                gru_zfs[T-1-t] =self.zfs[(idx-t)%T]   #buf_t_idx=(idx-t)%T当前帧的前t帧在buf中的位置
+
+            gru_zfs=torch.stack(gru_zfs,dim=1)            #将输入变为[n,t,c,h,w]的形式
+            zf =self.grus(gru_zfs).squeeze(dim=1)          #grus输出为[n,1,c,h，w]的形式转化为【n,c,h,w】的形式
+
+
+
         if cfg.MASK.MASK:
             zf = zf[-1]
         if cfg.ADJUST.ADJUST:

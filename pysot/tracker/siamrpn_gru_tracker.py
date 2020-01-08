@@ -13,10 +13,10 @@ from pysot.utils.anchor import Anchors
 from pysot.tracker.base_tracker import SiameseTracker
 
 
-class SiamRPNTracker(SiameseTracker):
+class SiamRPN_GRU_Tracker(SiameseTracker):
     def __init__(self, model):
         #初始化输入就是加载完成的参数模型
-        super(SiamRPNTracker, self).__init__()
+        super(SiamRPN_GRU_Tracker, self).__init__()
 
         self.score_size = (cfg.TRACK.INSTANCE_SIZE - cfg.TRACK.EXEMPLAR_SIZE) // \
             cfg.ANCHOR.STRIDE + 1 + cfg.TRACK.BASE_SIZE
@@ -27,6 +27,7 @@ class SiamRPNTracker(SiameseTracker):
         self.anchors = self.generate_anchor(self.score_size)
         self.model = model
         self.model.eval()                         #模型做只做前向，不更新bn参数
+        self.template_idx = 0                       #模板的索引号
 
     def generate_anchor(self, score_size):
         anchors = Anchors(cfg.ANCHOR.STRIDE,cfg.ANCHOR.RATIOS, cfg.ANCHOR.SCALES)
@@ -60,24 +61,24 @@ class SiamRPNTracker(SiameseTracker):
         # [n,4*a,h,w]-->[4*a,h,w,n]-->[4,a*h*w*n]
         delta = delta.permute(1, 2, 3, 0).contiguous().view(4, -1)
         delta = delta.data.cpu().numpy()
-        #delta的shape为【4,a*h*w*n],n=1,anchor的shape为【a*h*w,4】
+        # delta的shape为【4,a*h*w*n],n=1,anchor的shape为【a*h*w,4】
         delta[0, :] = delta[0, :] * anchor[:, 2] + anchor[:, 0]
         delta[1, :] = delta[1, :] * anchor[:, 3] + anchor[:, 1]
         delta[2, :] = np.exp(delta[2, :]) * anchor[:, 2]
         delta[3, :] = np.exp(delta[3, :]) * anchor[:, 3]
 
-        #返回的delta就是在搜索区域图像上bbox,shape为【4，a*h*w*n]
+        # 返回的delta就是在搜索区域图像上bbox,shape为【4，a*h*w*n]
         return delta
 
     def _convert_score(self, score):
-        #[n,2*a,h,w]-->[2*a,h,w,n]-->[2,a*h*w*n]-->[a*h*w*n,2]
+        # [n,2*a,h,w]-->[2*a,h,w,n]-->[2,a*h*w*n]-->[a*h*w*n,2]
         score = score.permute(1, 2, 3, 0).contiguous().view(2, -1).permute(1, 0)
-        score = F.softmax(score, dim=1).data[:, 1].cpu().numpy()            #通道1表示是目标的概率，输出>[a*h*w*n]
+        score = F.softmax(score, dim=1).data[:, 1].cpu().numpy()  # 通道1表示是目标的概率，输出>[a*h*w*n]
         return score
 
     def _bbox_clip(self, cx, cy, width, height, boundary):
-        #cx,cy,w,h都是对应图像原始分辨率的，boundary就是输入图像的高度宽度
-        #剪切的作用是为了让输出边界框中心不要出边界，同时边界框的大小不要超过图像本身大小，同时也别小于10*10
+        # cx,cy,w,h都是对应图像原始分辨率的，boundary就是输入图像的高度宽度
+        # 剪切的作用是为了让输出边界框中心不要出边界，同时边界框的大小不要超过图像本身大小，同时也别小于10*10
         cx = max(0, min(cx, boundary[1]))
         cy = max(0, min(cy, boundary[0]))
         width = max(10, min(width, boundary[1]))
@@ -106,7 +107,12 @@ class SiamRPNTracker(SiameseTracker):
         z_crop = self.get_subwindow(img, self.center_pos,
                                     cfg.TRACK.EXEMPLAR_SIZE,
                                     s_z, self.channel_average)
-        self.model.template(z_crop)                      #跟踪的时候先把模板分支的前向存储下来
+
+        #用单个图像初始化前seq_in_len帧，作为模板
+        for i in range(self.model.grus.seq_in_len):
+            self.template_idx=i
+            self.model.gru_template(z_crop,self.template_idx)                      #跟踪的时候先把模板分支的前向存储下来
+
 
     def track(self, img):
         """

@@ -108,7 +108,13 @@ def rect1_2_cxy_wh(rect):
 
 
 def get_axis_aligned_bbox(region):
-    """ convert region to (cx, cy, w, h) that represent by axis aligned box
+    """
+    将输入框的坐标转化为（cx,cy,w,h）中心点的形式的坐标
+    输入框的类型有：
+    4个点构成的倾斜矩形
+    x,y为左上角点的正立矩形
+
+    convert region to (cx, cy, w, h) that represent by axis aligned box
     """
     nv = region.size
     if nv == 8:   #[x1,y1,x2,y2,x3,y3,x4,y4]
