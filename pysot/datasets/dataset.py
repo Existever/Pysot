@@ -66,6 +66,8 @@ class SubDataset(object):
         self.num_use = self.num if self.num_use == -1 else self.num_use
         self.videos = list(meta_data.keys())
         logger.info("{} loaded".format(self.name))                      #视频片段的部分路径
+
+        print("dataset:", self.name, "videos:", self.num,"num_use",self.num_use)
         self.path_format = '{}.{}.{}.jpg'
         self.pick = self.shuffle()                                      #shuffle索引号的idx，例如【0,2,1,0,1,2，...】视频序列不够时通过随机重复筹够self.num_use个视频片段
 
@@ -168,6 +170,7 @@ class SubDataset(object):
         #搜索区域的帧相对模板帧而言，
         left = max(first_t - self.frame_range, 0)
         right = min(last_t + self.frame_range, len(frames)-1)
+        right = max(right,left+1)       #randomint使用是right必须要大于left,不能等于
 
         seq_s =np.random.randint(low=left,high=right,size=seq_len)
         seq_s.sort()

@@ -19,6 +19,6 @@ train --cfg /home/rainzsy/projects/Pytorch/Pysot/experiments/siamrpn_alex_dwxcor
 
 
 ４控制台运行
-export PYTHONPATH=/path/to/pysot:$PYTHONPATH\
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=1 --master_port=2334 ../../tools/train_gru.py --cfg config_gru.yaml
+export PYTHONPATH=/media/solanliu/disk/zsy/Pysot:$PYTHONPATH\
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --nproc_per_node=1 --master_port=2334 ../../tools/train_gru.py --cfg config_gru.yaml
 

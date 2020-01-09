@@ -11,6 +11,8 @@ import time
 
 Run_In_Terminal = False
 
+datadir = '/media/solanliu/windows/pyProject/pysot-master-src/training_dataset/coco'
+
 
 # Print iterations progress (thanks StackOverflow)
 def printProgress(iteration, total, prefix='', suffix='', decimals=1, barLength=100):
@@ -102,7 +104,7 @@ def crop_img(img, anns, set_crop_base_path, set_img_base_path, instanc_size=511)
         cv2.imwrite(join(frame_crop_base_path, '{:06d}.{:02d}.x.jpg'.format(0, trackid)), x)
 
 
-def main(instanc_size=511, num_threads=12,dataDir = '/media/rainzsy/00024268000F00F7/coco'):
+def main(instanc_size=511, num_threads=24,dataDir = datadir):
 
     crop_path = dataDir+'/crop{:d}'.format(instanc_size)
     if not isdir(crop_path): mkdir(crop_path)

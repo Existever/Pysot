@@ -113,18 +113,18 @@ def build_opt_lr(model, current_epoch=0):
     #剩下的所有的和rpn相关的学习率都按照基础学习率作为基准
     if cfg.ADJUST.ADJUST:
         trainable_params += [{'params': model.neck.parameters(),
-                              'lr': cfg.TRAIN.BASE_LR}]
+                              'lr': cfg.TRAIN.BASE_LR*cfg.GRU.NONE_GRU_LR_COFF}]
 
     trainable_params += [{'params': model.rpn_head.parameters(),
-                          'lr': cfg.TRAIN.BASE_LR}]
+                          'lr': cfg.TRAIN.BASE_LR*cfg.GRU.NONE_GRU_LR_COFF}]
 
     if cfg.MASK.MASK:
         trainable_params += [{'params': model.mask_head.parameters(),
-                              'lr': cfg.TRAIN.BASE_LR}]
+                              'lr': cfg.TRAIN.BASE_LR*cfg.GRU.NONE_GRU_LR_COFF}]
 
     if cfg.REFINE.REFINE:
         trainable_params += [{'params': model.refine_head.parameters(),
-                              'lr': cfg.TRAIN.LR.BASE_LR}]
+                              'lr': cfg.TRAIN.LR.BASE_LR*cfg.GRU.NONE_GRU_LR_COFF}]
 
     # 如果使用gru
     if cfg.GRU.USE_GRU:
@@ -322,7 +322,8 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
        # show_tensor(data, tb_idx, tb_writer)  # 只看输入数据，在tensorboard中显示输入数据
         data[0]['iter']=tb_idx                           #添加监视用
         outputs = model(data)
-        loss = outputs['total_loss']
+        loss = outputs['feat_loss']
+        # loss = outputs['total_loss']
         show_tensor(data, tb_idx, tb_writer,outputs)  #输入输出都看，在tensorboard中显示输入数据
 
 

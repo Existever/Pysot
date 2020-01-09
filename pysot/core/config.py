@@ -47,7 +47,7 @@ __C.TRAIN.OUTPUT_SIZE = 25  #输出相关面的尺寸
 
 __C.TRAIN.RESUME = ''
 
-__C.TRAIN.PRETRAINED = '../../pretrained_models/siamese_gru10_rpn45.pth'
+__C.TRAIN.PRETRAINED = ''
 
 __C.TRAIN.LOG_DIR = './logs'
 
@@ -146,25 +146,25 @@ __C.DATASET.NEG = 0.2
 __C.DATASET.GRAY = 0.0
 
 
-__C.DATASET.NAMES = (['GOT10K','VID'])    # only use coco for training zsy
+__C.DATASET.NAMES = (['GOT10K','VID','COCO'])    # only use coco for training zsy
 __C.DATASET.COCO = CN()
-__C.DATASET.COCO.ROOT = '/media/rainzsy/00024268000F00F7/coco/crop511'
-__C.DATASET.COCO.ANNO = '/media/rainzsy/00024268000F00F7/coco/train2017.json'
+__C.DATASET.COCO.ROOT = '/media/solanliu/disk/zsy/datasets/coco/crop511'
+__C.DATASET.COCO.ANNO = '/media/solanliu/disk/zsy/datasets/coco/train2017.json'
 __C.DATASET.COCO.FRAME_RANGE = 1  #模板图帧号为k,则搜索区域图在视频序列，在[k-FRAME_RANGE,k+FRAME_RANGE】范围内随机选择
 __C.DATASET.COCO.NUM_USE = -1     #使用多少个视频，-1表示使用全部，否则按照指定个数使用，如果指定个数大于总个数，在标签shuffle的时候会随机重复取，直到满足设定个数要求
 
 __C.DATASET.VID = CN()
-__C.DATASET.VID.ROOT = 'training_dataset/vid/crop511'
-__C.DATASET.VID.ANNO = 'training_dataset/vid/train_mini.json'
-__C.DATASET.VID.FRAME_RANGE = 10                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
+__C.DATASET.VID.ROOT = '/media/solanliu/disk/zsy/datasets/vid/crop511'
+__C.DATASET.VID.ANNO = '/media/solanliu/disk/zsy/datasets/vid/train.json'
+__C.DATASET.VID.FRAME_RANGE = 20                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
 __C.DATASET.VID.NUM_USE = 100000  # repeat until reach NUM_USE
 
 
 __C.DATASET.GOT10K = CN()
-__C.DATASET.GOT10K.ROOT = '/home/rainzsy/datasets/got10k/crop511'
-__C.DATASET.GOT10K.ANNO = 'training_dataset/got10k/train.json'
-__C.DATASET.GOT10K.FRAME_RANGE = 10                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
-__C.DATASET.GOT10K.NUM_USE = -1  # repeat until reach NUM_USE
+__C.DATASET.GOT10K.ROOT = '/media/solanliu/disk/zsy/datasets/got10k/crop511'
+__C.DATASET.GOT10K.ANNO = '/media/solanliu/disk/zsy/datasets/got10k/train.json'
+__C.DATASET.GOT10K.FRAME_RANGE = 20                                    #搜索区域对应图像帧号，在模板图像帧号正负FRAME_RANGE内
+__C.DATASET.GOT10K.NUM_USE = 200000  # repeat until reach NUM_USE
 
 # __C.DATASET.NAMES = ('VID', 'COCO', 'DET', 'YOUTUBEBB')
 #
@@ -225,7 +225,7 @@ __C.GRU.SEQ_IN = 3         #GRU连续输入序列长度
 __C.GRU.SEQ_OUT = 1         #GRU输出预测序列长度,对于跟踪问题只设置为1
 __C.GRU.FeatLoss = False    #GRU计算特征图是否计算损失
 __C.GRU.LR_COFF = 0.1      #联合训练的时候GRU模块的学习率比例系数
-
+__C.GRU.NONE_GRU_LR_COFF = 1.0      #联合训练的时候非GRU模块的学习率比例系数
 
 
 

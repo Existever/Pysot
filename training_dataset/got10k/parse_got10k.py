@@ -7,7 +7,7 @@ import six
 import json
 import numpy as np
 
-root_dir = '/home/rainzsy/datasets/got10k/'
+root_dir = '/media/solanliu/disk/zsy/datasets/got10k/'
 subset = 'train'
 
 
@@ -130,7 +130,9 @@ if __name__ =='__main__':
     #由于got10k,是单目标跟踪，一个数据集包含多个视频，一个视频包含多帧，一帧包含一个目标，一个目标一个gt_bbox
     for vi,video_info in enumerate(got10k_dataset):
         video_name,img_files, gt_bbox, meta =video_info
-        print(vi,video_name)
+        if vi %1000==0:
+            print(vi,video_name)
+
         v = dict()
         v['base_path'] = os.path.join(subset,video_name)           #存储到json文件中的视频路径为部分路径， 'a/ILSVRC2015_train_00000000'
         v['frame'] = []
@@ -157,8 +159,8 @@ if __name__ =='__main__':
                 o['cut'] = cut
                 o['absence'] = absence
 
-                if cover < 4:
-                    print('*' * 40, img_files[f_idx], absence, cover)
+                # if cover < 4:
+                #     print('*' * 40, img_files[f_idx], absence, cover)
 
                 objs.append(o)      #一帧可以包含多个目标的信息，但是这里只要一个
             f['objs'] = objs

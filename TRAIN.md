@@ -91,7 +91,7 @@ python ../../tools/eval.py 	 \
 ```bash
 
 conda activate nn_py37
-export PYTHONPATH=/home/solanliu/zsy/Pysot:$PYTHONPATH
+export PYTHONPATH=/media/solanliu/disk/zsy/Pysot:$PYTHONPATH
 
 CUDA_VISIBLE_DEVICES=3 python -m torch.distributed.launch --nproc_per_node=1 --master_port=2333 ../../tools/train_gru.py --cfg config_gru.yaml
 

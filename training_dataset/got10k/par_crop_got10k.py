@@ -11,7 +11,7 @@ import json
 
 Run_In_Terminal = False
 
-got_base_path ='/home/rainzsy/datasets/got10k/'
+got_base_path ='/media/solanliu/disk/zsy/datasets/got10k/'
 sub_sets = sorted({'train'})
 
 
@@ -79,7 +79,7 @@ def crop_like_SiamFC(image, bbox, context_amount=0.5, exemplar_size=127, instanc
 
 def crop_video(base_path,sub_set, video_name, crop_path, instanc_size,snippets):
     # print(video_name)
-    video_crop_base_path = join(crop_path, sub_set, video_name)
+    video_crop_base_path = join(crop_path, video_name)
     video_path = join(base_path,video_name)
     if not isdir(video_crop_base_path):
         makedirs(video_crop_base_path)
