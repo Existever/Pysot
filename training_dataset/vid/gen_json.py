@@ -6,7 +6,7 @@ import numpy as np
 #先要运行parse_vid生成vid.json
 print('load json (raw vid info), please wait 20 seconds~')
 # vid = json.load(open('vid.json', 'r'))
-vid = json.load(open('vid_mini.json', 'r'))
+vid = json.load(open('vid.json', 'r'))
 
 
 def check_size(frame_sz, bbox):

@@ -14,7 +14,7 @@ Run_In_Terminal = False
 
 VID_base_path ='./ILSVRC2015'
 ann_base_path = join(VID_base_path, 'Annotations/VID/train/')
-sub_sets = sorted({'a'})
+sub_sets = sorted({'a', 'b', 'c', 'd', 'e'})
 
 # VID_base_path = './ILSVRC2015'
 # ann_base_path = join(VID_base_path, 'Annotations/VID/train/')
@@ -149,7 +149,7 @@ def crop_video(sub_set, video, crop_path, instanc_size):
             bbox = [int(bndbox.find('xmin').text), int(bndbox.find('ymin').text),
                     int(bndbox.find('xmax').text), int(bndbox.find('ymax').text)]
             z, x = crop_like_SiamFC(im, bbox, instanc_size=instanc_size, padding=avg_chans)         #将bbox作为初始区域，包含0.5倍的上下文信息的区域当做模板，再扩展一部分当做搜索区域
-            cv2.imwrite(join(video_crop_base_path, '{:06d}.{:02d}.z.jpg'.format(int(filename), trackid)), z)
+            #cv2.imwrite(join(video_crop_base_path, '{:06d}.{:02d}.z.jpg'.format(int(filename), trackid)), z)
             cv2.imwrite(join(video_crop_base_path, '{:06d}.{:02d}.x.jpg'.format(int(filename), trackid)), x)
 
 
@@ -182,7 +182,7 @@ if __name__ == '__main__':
         main(int(sys.argv[1]), int(sys.argv[2]))
     else:
         # system("bash ./create_link.sh")
-        main(511,12)
+        main(511,24)
     time_elapsed = time.time() - since
     print('Total complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))

@@ -48,11 +48,11 @@ parser.add_argument('--seed', type=int, default=123456,
 parser.add_argument('--local_rank', type=int, default=0,
                     help='compulsory for pytorch launcer')
 args = parser.parse_args()
-import os
+# import os
 
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '3'
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
 
 def seed_torch(seed=0):
     random.seed(seed)
@@ -372,6 +372,8 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
 
 
 def main():
+
+
     rank, world_size = dist_init()
     logger.info("init done")
 

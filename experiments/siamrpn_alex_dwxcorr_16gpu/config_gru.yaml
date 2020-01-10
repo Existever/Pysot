@@ -57,10 +57,10 @@ TRAIN:
     BASE_LR: 0.005
     CLS_WEIGHT: 1.0
     LOC_WEIGHT: 1.2
-    FEAT_WEIGHT: 0.1
+    FEAT_WEIGHT: 0.5
     RESUME: ''
     PRETRAINED: '../../pretrained_models/siamese_gru10_rpn45.pth'
-    NUM_WORKERS: 1
+    NUM_WORKERS: 16
 
 
 

@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 VID_base_path ='./ILSVRC2015'
 ann_base_path = join(VID_base_path, 'Annotations/VID/train/')
 img_base_path = join(VID_base_path, 'Data/VID/train/')
-sub_sets = sorted({'a'})
+sub_sets = sorted({'a', 'b', 'c', 'd', 'e'})
 
 
 
@@ -59,5 +59,5 @@ for sub_set in sub_sets:
     #一个vid数据集包含多个子数据集合
     vid.append(s)
 print('save json (raw vid info), please wait 1 min~')
-json.dump(vid, open('vid_mini.json', 'w'), indent=4, sort_keys=True)
+json.dump(vid, open('vid.json', 'w'), indent=4, sort_keys=True)
 print('done!')
