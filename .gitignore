@@ -159,3 +159,13 @@ experiments/siamrpn_r50_l234_dwxcorr_otb/
 experiments/siamrpn_r50_l234_dwxcorr_otb_8gpu/
 
 *.solanliu-ubuntu
+
+experiments/siamrpn_alex_dwxcorr_16gpu/snapshot/训练记录.md
+
+*.odt#
+
+experiments/siamrpn_alex_dwxcorr_16gpu/snapshot/Untitled Document
+
+experiments/siamrpn_alex_dwxcorr_16gpu/snapshot/使用rpn初始化,只训练gru,训练到epoch36/
+
+experiments/siamrpn_alex_dwxcorr_16gpu/snapshot/使用只训练的gru,epoch20初始化,从0开始训练到36,feat权重0.1太大了/

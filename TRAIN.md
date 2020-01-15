@@ -92,7 +92,15 @@ python ../../tools/eval.py 	 \
 
 conda activate nn_py37
 export PYTHONPATH=/media/solanliu/disk/zsy/Pysot:$PYTHONPATH
+cd /media/solanliu/disk/zsy/Pysot/experiments/siamrpn_alex_dwxcorr_16gpu
 
-CUDA_VISIBLE_DEVICES=3 python -m torch.distributed.launch --nproc_per_node=1 --master_port=2333 ../../tools/train_gru.py --cfg config_gru.yaml
+CUDA_VISIBLE_DEVICES=2,3 python -m torch.distributed.launch --nproc_per_node=2 --master_port=2333 ../../tools/train_gru.py --cfg config_gru.yaml
+
+
+
+conda activate '/media/solanliu/disk/zsy/nn_py37'
+export PYTHONPATH=/media/solanliu/disk/zsy/Pysot:$PYTHONPATH
+CUDA_VISIBLE_DEVICES=1,2,3 python -m torch.distributed.launch --nproc_per_node=3 --master_port=2333 ../../tools/train_gru.py --cfg config_gru.yaml
+
 
 ### 本地

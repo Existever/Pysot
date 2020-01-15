@@ -3,10 +3,10 @@ META_ARC: "siamrpn_alex_dwxcorr"
 BACKBONE:
     TYPE: "alexnet"
     KWARGS:
-        width_mult: 1.0   
+        width_mult: 1.0
     PRETRAINED: 'pretrained_models/alexnet-bn.pth'
     TRAIN_LAYERS: ['layer4', 'layer5']
-    TRAIN_EPOCH: 20
+    TRAIN_EPOCH: 10
     LAYERS_LR: 1.0
 
 GRU:
@@ -14,8 +14,8 @@ GRU:
     SEQ_IN: 3
     SEQ_OUT: 1
     FeatLoss: True
-    LR_COFF: 1.0
-    NONE_GRU_LR_COFF: 0.0
+    LR_COFF: 0.01
+    NONE_GRU_LR_COFF: 1.0
 
 
 ADJUST:
@@ -49,18 +49,18 @@ TRACK:
     CONTEXT_AMOUNT: 0.5
 
 TRAIN:
-    EPOCH: 50
-    START_EPOCH: 0
+    EPOCH: 60
+    START_EPOCH: 50
     BATCH_SIZE: 128
     BASE_SIZE: 0
     OUTPUT_SIZE: 17
     BASE_LR: 0.005
     CLS_WEIGHT: 1.0
     LOC_WEIGHT: 1.2
-    FEAT_WEIGHT: 0.5
+    FEAT_WEIGHT: 0.0001
     RESUME: ''
-    PRETRAINED: '../../pretrained_models/siamese_gru10_rpn45.pth'
-    NUM_WORKERS: 16
+    PRETRAINED: '/media/solanliu/disk/zsy/Pysot/experiments/siamrpn_alex_dwxcorr_16gpu/snapshot/checkpoint_e50.pth'
+    NUM_WORKERS: 4
 
 
 

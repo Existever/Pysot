@@ -261,8 +261,8 @@ class ModelBuilder(nn.Module):
         outputs = {}
         outputs['total_loss'] = cfg.TRAIN.CLS_WEIGHT * cls_loss + \
             cfg.TRAIN.LOC_WEIGHT * loc_loss
-        outputs['cls_loss'] = cls_loss
-        outputs['loc_loss'] = loc_loss
+        outputs['cls_loss'] = cls_loss*cfg.GRU.NONE_GRU_LR_COFF
+        outputs['loc_loss'] = loc_loss*cfg.GRU.NONE_GRU_LR_COFF
 
         # 是否计算GRU预测特征的损失
         if cfg.GRU.FeatLoss:
@@ -284,7 +284,7 @@ class ModelBuilder(nn.Module):
             mask, self.mask_corr_feature = self.mask_head(zf, xf)
             mask_loss = None
             outputs['total_loss'] += cfg.TRAIN.MASK_WEIGHT * mask_loss
-            outputs['mask_loss'] = mask_loss
+            outputs['mask_loss'] = mask_loss*cfg.GRU.NONE_GRU_LR_COFF
 
 
         if data[0]['iter']%cfg.TRAIN.ShowPeriod==0:

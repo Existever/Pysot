@@ -322,8 +322,8 @@ def train(train_loader, model, optimizer, lr_scheduler, tb_writer):
        # show_tensor(data, tb_idx, tb_writer)  # 只看输入数据，在tensorboard中显示输入数据
         data[0]['iter']=tb_idx                           #添加监视用
         outputs = model(data)
-        loss = outputs['feat_loss']
-        # loss = outputs['total_loss']
+        # loss = outputs['feat_loss']
+        loss = outputs['total_loss']
         show_tensor(data, tb_idx, tb_writer,outputs)  #输入输出都看，在tensorboard中显示输入数据
 
 
