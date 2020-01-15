@@ -54,12 +54,10 @@ def weight_feat_loss(pred_feat, label_feat, bbox,stride=21.0):
     :return:
     '''
 
-    fb,fc,fh,fw=pred_feat.shape
+    fb, fc, fh, fw = pred_feat.shape
 
-    loss = (pred_feat - label_feat).abs()                                   #对于 feature map都直接算1范数
-    return loss.sum().div(fb*fc*fw*fh)                       #除以batch平均一下
-
-
+    loss = (pred_feat - label_feat).abs()  # 对于 feature map都直接算1范数
+    return loss.sum().div(fb * fc * fw * fh)  # 除以batch平均一下
 
     # fb,fc,fh,fw=pred_feat.shape
     # bbox =bbox/stride
@@ -76,4 +74,5 @@ def weight_feat_loss(pred_feat, label_feat, bbox,stride=21.0):
     # diff = diff.sum(dim=1).view(fb, -1, fh, fw)
     # loss = diff * mask                              #乘以权重相当于只在正样本位置求平均
     # return loss.sum().div(fb*fc*fw*fh)                       #除以batch平均一下
+
 

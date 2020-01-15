@@ -27,7 +27,7 @@ parser.add_argument('--dataset', '-d', default='VOT2018',
                     type=str, help='dataset name')
 parser.add_argument('--num', '-n', default=1,
                     type=int, help='number of thread to eval')
-parser.add_argument('--tracker_prefix', '-t', default='checkpoint_e45',
+parser.add_argument('--tracker_prefix', '-t', default='checkpoint_e37_fitune',
                     type=str, help='tracker name')
 parser.add_argument('--show_video_level', '-s', dest='show_video_level',
                     action='store_true')

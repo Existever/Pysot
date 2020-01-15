@@ -32,7 +32,7 @@ parser.add_argument('--dataset', default='VOT2018',
                     type=str, help='datasets')
 parser.add_argument('--config', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/config_gru.yaml',
                     type=str,   help='config file')
-parser.add_argument('--snapshot', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/gru_snapshot/fusion_checkpoint_e16.pth',
+parser.add_argument('--snapshot', default=root_dir+'experiments/siamrpn_alex_dwxcorr_16gpu/gru_snapshot/checkpoint_e37_fitune.pth',
                     type=str,    help='snapshot of models to eval')
 parser.add_argument('--video', default='',
                     type=str,   help='eval one special video')
@@ -198,7 +198,15 @@ def main():
             # pred_bboxes包含两种类型的数据，类型1：整型数据，有1,2，0,三个值，分别表示跟踪开始，跟踪结束（丢失），跟踪丢失之后，间隔帧的占位符
             # 类型2：浮点类型的bbox,也就是跟踪结果
             pred_bboxes = []
+
+            gru_seq_len=tracker.model.grus.seq_in_len
+            video_len =len(video)
+
             for idx, (img, gt_bbox) in enumerate(video):
+
+
+
+
                 if len(gt_bbox) == 4:     #如果gt是【x，y,w,h】的方式，转化为8个坐标信息（x1,y1,x2,y2,x3,y3,x4,y4）
                     gt_bbox = [gt_bbox[0], gt_bbox[1],
                        gt_bbox[0], gt_bbox[1]+gt_bbox[3]-1,
@@ -208,19 +216,42 @@ def main():
 
                 #跟踪初始化
                 if idx == frame_counter:#   跟踪第一帧初始化
-                    cx, cy, w, h = get_axis_aligned_bbox(np.array(gt_bbox))    #将倾斜框4个点坐标，转化为bbox,x,y为中心点形式(cx,cy,w,h)
-                    gt_bbox_ = [cx-(w-1)/2, cy-(h-1)/2, w, h]                  #x,y,中心点形式，转化为左上角形式
-                    tracker.init(img, gt_bbox_)
-                    pred_bbox = gt_bbox_
-                    pred_bboxes.append(1)
+                    idxs = list(map(lambda x, y: x + y, [idx] * gru_seq_len,
+                                    list(range(0, gru_seq_len))))  # 取出idx后面的gru_seq_len个序列的索引号
+                    idxs = list(map(lambda x: min(x, video_len - 1), idxs))  # 避免索引号越界
+
+                    tracker.template_idx=0          #模板初始化的第一帧
+                    for k in idxs:
+                        init_img, init_gt_bbox = video[k]           #连续gru_seq_len帧初始化
+                        #init_img, init_gt_bbox =video[idxs[0]]     #只用一帧作为初始化参数
+
+                        cx, cy, w, h = get_axis_aligned_bbox(np.array(init_gt_bbox))    #将倾斜框4个点坐标，转化为bbox,x,y为中心点形式(cx,cy,w,h)
+                        init_gt_bbox = [cx-(w-1)/2, cy-(h-1)/2, w, h]                  #x,y,中心点形式，转化为左上角形式
+
+                        tracker.init_gru(init_img, init_gt_bbox,k)
+
+                    if k==0:
+                        pred_bbox = init_gt_bbox
+                        pred_bboxes.append(1)
 
                 #持续的后续跟踪
                 elif idx > frame_counter:
                     outputs = tracker.track(img)                #对于下面的帧
                     pred_bbox = outputs['bbox']
+
+                    #只有输出概率很高的时候才更新模板
+                    if outputs['best_score']>0.95:
+                        tracker.init_gru(img, pred_bbox, idx)
+
+
                     if cfg.MASK.MASK:
                         pred_bbox = outputs['polygon']
                     overlap = vot_overlap(pred_bbox, gt_bbox, (img.shape[1], img.shape[0]))
+
+                    #查看初始化后的第一帧检测iou和score之间的关系
+                    # if tracker.template_idx==4:
+                    #     print("{:3.2f}\t{:3.2f}".format(overlap,outputs['best_score']))
+
                     if overlap > 0:
                         # not lost
                         pred_bboxes.append(pred_bbox)
@@ -291,6 +322,7 @@ def main():
             for idx, (img, gt_bbox) in enumerate(video):
                 tic = cv2.getTickCount()
                 if idx == 0:
+
                     cx, cy, w, h = get_axis_aligned_bbox(np.array(gt_bbox))
                     gt_bbox_ = [cx-(w-1)/2, cy-(h-1)/2, w, h]
                     tracker.init(img, gt_bbox_)

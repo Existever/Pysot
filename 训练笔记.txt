@@ -7,7 +7,7 @@ torch.distributed.launch
 
 parameters 后面：
 
-train --cfg /media/solanliu/disk/zsy/Pysot/experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml
+train --cfg /home/rainzsy/projects/Pytorch/Pysot/experiments/siamrpn_alex_dwxcorr_16gpu/config.yaml
 
 不要用rpn_alex_dwxcorr的，他这个配置只支持前向的，pysot问题区已经说了
 

@@ -85,7 +85,7 @@ class SiamRPN_GRU_Tracker(SiameseTracker):
         height = max(10, min(height, boundary[0]))
         return cx, cy, width, height
 
-    def init(self, img, bbox):
+    def init_gru(self, img, bbox,idx):
         """
         args:
             img(np.ndarray): BGR image
@@ -108,10 +108,15 @@ class SiamRPN_GRU_Tracker(SiameseTracker):
                                     cfg.TRACK.EXEMPLAR_SIZE,
                                     s_z, self.channel_average)
 
-        #用单个图像初始化前seq_in_len帧，作为模板
-        for i in range(self.model.grus.seq_in_len):
-            self.template_idx=i
-            self.model.gru_template(z_crop,self.template_idx)                      #跟踪的时候先把模板分支的前向存储下来
+        # 用连续的多个图像个图像初始化作为模板
+        self.model.gru_template(z_crop, self.template_idx)  # 跟踪的时候先把模板分支的前向存储下来
+        self.template_idx += 1
+
+
+        # #用单个图像初始化前seq_in_len帧，作为模板
+        # for i in range(self.model.grus.seq_in_len):
+        #     self.template_idx=i
+        #     self.model.gru_template(z_crop,self.template_idx)                      #跟踪的时候先把模板分支的前向存储下来
 
 
     def track(self, img):
